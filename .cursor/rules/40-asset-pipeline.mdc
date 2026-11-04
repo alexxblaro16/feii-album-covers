@@ -1,0 +1,37 @@
+---
+description: Sleeve pictures, KTX2, glTF, and per-route asset rules
+globs:
+  - "covers/**/public/**/*"
+  - "**/*.{glb,gltf,ktx2,webp,png,jpg}"
+  - "scripts/**/*.{js,mjs,cjs}"
+---
+
+# Asset pipeline — pictures, KTX2 & glTF
+
+## Where assets live
+- Each route keeps its own files in `covers/<slug>/public/`
+- Reference them relative to the module that loads them: `new URL('../public/<file>', import.meta.url).href`. Vite copies and hashes the file, and the URL survives a subfolder deploy (`import.meta.env.BASE_URL`)
+- Never reference a route asset from the site root, and never put route assets in the repo-root `public/` (that folder holds shared vendored files only, e.g. the Basis transcoder)
+
+## Textures
+- Source: one square PNG per sleeve (UV runs 0–1 on both axes; a non-square picture stretches). Dimensions a multiple of 4
+- Runtime: KTX2 (Basis Universal) — ETC1S or UASTC, chosen and explained in `docs/ktx2-note.md` with file bytes AND computed GPU bytes
+- Encode with `npm run encode -- <slug>` (needs `toktx`; the script fails loudly without it). Installing the encoder on every laptop is not a lab outcome
+- Check `texture.colorSpace` after loading a KTX2 sleeve (`'srgb'` for a photo) and its orientation (a packed sleeve is not flipped on upload). Fix the encode, not the shader
+- Use the transcoder the gallery vendors (path from `import.meta.env.BASE_URL`); never a CDN copy, never a second copy in your route
+
+## Models
+- Ship **glTF 2.0** as `.glb` if a route uses a model at all; run `gltf-transform inspect` and record the triangle count in `docs/renderer-info.md`
+- Prefer **meshopt** where the decoder is acceptable; document decoder inclusion. Draco only when you can explain decode cost vs bandwidth
+
+## Naming
+- Lowercase-kebab file names; no spaces
+
+## Rights (D8)
+- A photo of a physical album you own, or a named licence in `docs/ktx2-note.md`. A private repository is not a licence
+- `_studio` ships original or PD/CC art only
+
+## Forbidden
+- Committing Photoshop PSDs or other authoring sources
+- Multi-megabyte PNGs as the final runtime texture
+- Scraped commercial cover art without a declared right

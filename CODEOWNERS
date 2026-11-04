@@ -1,0 +1,16 @@
+# Instructor-owned paths. A PR touching any of these needs the instructor's review.
+# Student routes (covers/<slug>/) are deliberately NOT listed: the teams own them,
+# and the human approval required by branch protection can come from a peer.
+# covers/registry.json is shared: every team adds exactly one object.
+
+/src/              @ruvebal
+/scripts/          @ruvebal
+/covers/_studio/   @ruvebal
+/covers/_template/ @ruvebal
+/.github/          @ruvebal
+/.cursor/          @ruvebal
+/CODEOWNERS        @ruvebal
+/package.json      @ruvebal
+/package-lock.json @ruvebal
+/vite.config.js    @ruvebal
+/eslint.config.js  @ruvebal

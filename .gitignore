@@ -1,0 +1,25 @@
+# Keep package-lock.json committed so the pins stay reproducible (same as react-template).
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.sw?
+
+# Authoring sources never ship (40-asset-pipeline)
+*.psd

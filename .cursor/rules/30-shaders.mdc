@@ -1,0 +1,43 @@
+---
+description: GLSL authoring conventions, uniform naming, and review requirements
+globs:
+  - "**/*.{glsl,vert,frag}"
+  - "**/*Material*.{js,jsx}"
+  - "**/shaders/**/*"
+---
+
+# Shaders — GLSL conventions
+
+## Versions & precision
+- Write GLSL 1 syntax in drei `shaderMaterial` / three `ShaderMaterial` (`varying`, `gl_FragColor`). On WebGL 2, three@0.185.1 prepends `#version 300 es` and the mapping defines itself; leave `glslVersion` null unless you write `in`/`out` yourself
+- Set precision in ONE place: `material.precision = 'mediump'` in the `shaderMaterial` callback (Units 9 and Cover shaders). Do not also put a `precision` line in the GLSL
+- Justify `highp` in `docs/shader-note.md` line 4 if you need it
+- Wrap clock uniforms (`% period`) so they stay small under `mediump`
+
+## Naming
+- Prefix uniforms with `u` — `uTime`, `uMap`, `uHot`
+- Prefix varyings with `v` — `vUv`, `vNormal`, `vWorldPos`
+- Do not redeclare what three prepends (`position`, `normal`, `uv`, `projectionMatrix`, `modelViewMatrix`, `normalMatrix`); document custom attributes in the material file
+
+## Files & strings
+- Template literals in `.js`/`.jsx` with a `/* glsl */` tag
+- One material per file (`SleeveMaterial.jsx`), uniform block documented at the top
+
+## Colour
+- A sleeve picture is tagged `SRGBColorSpace` before upload, and the fragment shader keeps `#include <colorspace_fragment>`. Missing either one compiles and looks wrong
+
+## Comments (required)
+Every custom shader file must include at the top:
+1. **Purpose** (one line)
+2. **Inputs** (uniforms/textures)
+3. **Coordinate spaces** (object/world/view/uv)
+4. **Performance notes** (loops, texture fetches, discard usage)
+
+## Safety
+- Avoid `discard` in depth-writing passes unless the reason is written down
+- Watch `normalize` on collapsed vectors — guard with epsilon when interpolating
+- Look the sleeve picture up at `vUv`, not `gl_FragCoord` or view direction, or it swims as the camera orbits
+
+## Reviews
+- Any new `for` loop or `discard` in GLSL needs a sentence in `docs/shader-note.md` and a reviewer's sign-off in the PR
+- Pasting Unit 9's bulb onto the sleeve is not an authored effect

@@ -1,0 +1,31 @@
+---
+description: Frame budgets, draw call discipline, and profiling requirements
+globs:
+  - "covers/**/src/**/*.{js,jsx}"
+  - "src/lib/**/*.{js,jsx}"
+---
+
+# Performance — budgets & profiling
+
+## Frame loop law
+- **60 FPS target** on the reference laptop you name in `docs/renderer-info.md`
+- Name the device class for any mobile reading you report
+
+## Budgets (course caps — tighten per route)
+- **Draw calls (full scene):** ≤ 200 on desktop, ≤ 80 on mobile — the safety rail
+- **Your accepted ceiling:** the measured row for your tree, written in `src/budget.js` (`CEILING`) and `docs/renderer-info.md` in the same PR
+- **Textures:** `renderer.info.memory.textures` is a COUNT, not bytes (1 with every map null — three's placeholder). GPU bytes are computed, as the KTX2 satellite teaches
+- **Shadows:** off by default; a shadow map doubles calls and adds textures — only with a before/after row
+
+## Post-processing
+- Zero passes is the reference. One pass only with comparable renderer readings before and after (Unit 9's per-frame probe)
+
+## Profiling workflow
+- Read the gallery panel (the shared `BudgetProbe`, ~1 Hz, previous frame) on your own route and machine
+- Chrome Performance panel for frame time when the panel is not enough
+- Change the tree → change `CEILING` and the renderer-info row together
+
+## Anti-patterns
+- Copying another tree's numbers (the beacon's 6 / 1368) into your row
+- `setState` at frame rate; allocation inside `useFrame`
+- Full-screen transparent quads; per-object real-time shadows

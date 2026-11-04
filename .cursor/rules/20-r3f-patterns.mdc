@@ -1,0 +1,43 @@
+---
+description: React Three Fiber scene architecture, hooks, and lifecycle rules
+globs:
+  - "covers/**/src/**/*.{js,jsx}"
+  - "src/**/*.{js,jsx}"
+---
+
+# R3F — patterns & guardrails
+
+## Canvas setup
+- One `<Canvas>` per route, and the gallery owns it (`src/gallery/CoverRoute.jsx`). A cover's `Cover.jsx` renders a tree, never a `<Canvas>`
+- The gallery caps `dpr={[1, 1.5]}` (Unit 8). Do not raise it from a route
+- Lights, camera, `OrbitControls`, and `BudgetProbe` are the gallery's. Add a light inside your tree only with a `docs/renderer-info.md` row before/after
+- Default `resize` behaviour is fine; do not tune it per route
+
+## useFrame discipline
+- **No new object allocations** in `useFrame` (no `new Vector3()` per frame)
+- Mutate reusable refs: `tmpV3.current.copy(...)`
+- Clamp `delta` (the course uses `Math.min(delta, 0.05)`) so a hidden tab cannot jump the animation
+- Return early when `reduced` is true: motion stops, interaction keeps working
+- Put simulation in `useFrame`; put **React state** updates behind throttling unless necessary (the probe commits ~1 Hz)
+- Order matters: use `priority` on `useFrame` when multiple subscribers must run in sequence
+
+## Memoization
+- Wrap expensive child trees in `React.memo` **after** measuring
+- Prefer `useMemo` for geometries/materials/textures that depend on props — not for everything
+
+## Disposal
+- When removing custom materials/geometries from the graph, call `dispose()` where three expects it
+- For textures made manually (`CanvasTexture`), dispose on unmount; prefer `useTexture` from drei with awareness of its shared cache
+
+## Suspense & loading
+- The gallery wraps `Cover` in `<Suspense fallback={null}>` inside the Canvas; `useTexture` and lazy chunks suspend there. Do not add DOM fallbacks inside the Canvas
+
+## Anti-patterns / render storms
+- Avoid `setState` every frame for values that can live in refs and be read by uniforms
+- Avoid inline `onPointerMove` that updates React state continuously — throttle or use refs
+- Do not recreate `new THREE.Color()` in render; hoist or memoize
+- Hover/click go through the five contract props (`onHover`, `onSelect`); do not keep a second copy of that state inside `Cover`
+
+## Drei
+- Prefer helpers from `@react-three/drei` over reinventing loaders and controls
+- Document when `PerformanceMonitor` is used and what downgrades it triggers

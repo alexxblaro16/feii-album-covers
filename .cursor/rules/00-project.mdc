@@ -1,0 +1,45 @@
+---
+description: Core stack, repo conventions, and 3D project invariants for the album-cover aggregator
+alwaysApply: true
+---
+
+# Project — FE II album covers (R3F aggregator)
+
+## Stack
+- Build: Vite (pins = `react-template`; do not bump without the instructor)
+- UI: React 19, plain CSS (`src/index.css`, colours from `src/theme/tokens.js`)
+- 3D: three.js + @react-three/fiber + @react-three/drei
+- Routing: react-router-dom — one instructor-owned router in `src/App.jsx`
+- Language: JavaScript + JSDoc typedefs (`src/lib/types.js`). No TypeScript, no `tsc`
+- Assets: per-route PNG sources in `covers/<slug>/public/`; KTX2 (ETC1S or UASTC) via `scripts/encode-cover.mjs`
+- No shadcn/ui, no Tailwind, no cloud LLM SDK dependencies
+
+## Repo structure (enforce)
+- `src/` — instructor-owned gallery: router, `/covers/:slug` route, panel, shared `lib/`. Students do not edit it
+- `src/lib/` — shared helpers (BudgetProbe, budget verdict, reduced-motion hook, JSDoc typedefs)
+- `covers/registry.json` — one `{ slug, title, album, authors }` object per route
+- `covers/<slug>/src/Cover.jsx` — default export; the R3F tree for one album; **no `<Canvas>`** (the gallery wraps it)
+- `covers/<slug>/src/parts.js` — `PartId` + `PARTS` for the panel; `budget.js` — the route's `CEILING`
+- `covers/<slug>/public/` — that route's pictures, referenced with `new URL('../public/<file>', import.meta.url).href`, never from the site root
+- `covers/<slug>/docs/` — renderer-info, shader-note, ktx2-note, ai-3d-merge-log
+- `covers/_template/` — copy source, never a route; `covers/_studio/` — instructor reference
+- `scripts/` — Node pipelines (registry check, toktx encode)
+
+## Route contract (do not break)
+- The `/covers/:slug` route owns `hovered`, `selected`, `reduced` and passes `hovered selected reduced onHover onSelect` to `Cover` — the same five props as the Unit 8 cover fork's `App.jsx`
+- A route never replaces `src/App.jsx`, never adds a second `<Canvas>`, never imports from another slug
+
+## Engineering values
+- Prefer explicit modules over barrel files
+- JavaScript only — validate shapes with JSDoc typedefs where helpful
+- Every Canvas route has a DOM fallback (the gallery's error boundary) with user-facing copy
+- Respect `prefers-reduced-motion`: the gallery passes `reduced`; every `useFrame` motion checks it
+- Type and controls stay in the DOM, not burned into the WebGL buffer
+
+## Git hygiene
+- Branch `cover-<slug>-task<N>-<short-topic-name>` from `main`; change only your slug + one registry object
+- Never commit uncompressed multi-megabyte PNGs as runtime textures; ship the chosen KTX2 (keep a reasonably sized source PNG for the encode)
+- No commercial album art without a declared right (photo of an album you own, or a named licence)
+
+## When unsure
+- Read `CONTRIBUTING.md` (route contract, PR ritual) and the route's `docs/renderer-info.md` before adding effects or post-processing
