@@ -71,6 +71,6 @@ This repository is private because it holds classroom artwork and sleeve photogr
 ## Instructor notes
 
 - **Review loop** (TTOD [`reviewing-cohort-prs.md`](https://github.com/ruvebal/ttod/blob/main/docs/public/guides/reviewing-cohort-prs.md)): check student PRs out in one sibling worktree, never in the teaching clone — `git worktree add ../feii-album-covers-review main`, then `gh pr checkout <n>` there. Humans run `gh pr review --approve | --request-changes`; merge with `gh pr merge --squash`. A local model may comment; there is no cloud review workflow.
-- **Branch protection on `main`**: required check `lint-and-build`, one approving review, no force-push.
+- **Branch protection on `main`** (intended): required check `lint-and-build`, one approving review, no force-push. **Not enforced yet:** on the current GitHub plan both the branch-protection and rulesets APIs return `403 Upgrade to GitHub Pro or make this repository public` for this private repository. Until the plan changes, the merge rule is held by review convention, and `lint-and-build` still runs on every PR and every push to `main`.
 - **CODEOWNERS** routes `src/`, `scripts/`, `covers/_studio/`, `covers/_template/`, `.github/`, `.cursor/`, and the build config to the instructor. Student slugs are not instructor-owned.
 - **Shared assets**: the Basis transcoder is vendored once at `public/basis/` (path built from `import.meta.env.BASE_URL`) when the KTX2 loader lands; routes never copy it.
