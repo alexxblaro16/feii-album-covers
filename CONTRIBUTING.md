@@ -16,7 +16,7 @@ Tasks 1–3 change only:
 - `covers/<slug>/**` — your route folder, copied once from `covers/_template/`;
 - **one** object in `covers/registry.json` — yours.
 
-You never edit `src/App.jsx`, `src/gallery/`, `src/lib/`, `scripts/`, `.github/`, `covers/_studio/`, `covers/_template/`, or another team's `covers/<slug>/` (except through task4, below). `CODEOWNERS` routes any change to those instructor paths to the instructor.
+You never edit `src/App.jsx`, `src/gallery/`, `src/lib/`, `scripts/`, `public/`, `.github/`, `covers/_studio/`, `covers/_template/`, or another team's `covers/<slug>/` (except through task4, below). `CODEOWNERS` routes any change to those instructor paths to the instructor.
 
 ### The registry object
 
@@ -60,7 +60,7 @@ So your `Cover.jsx`:
 - default-exports one component that takes those five props;
 - renders a tree, **never a `<Canvas>`** (the gallery wraps it);
 - keeps no state of its own for those five values, and adds no `BudgetProbe`;
-- imports only from its own folder (`./parts.js`, `./sleevePicture.js`, `./SleeveMaterial.jsx`, …) and from npm packages.
+- imports only from its own folder (`./parts.js`, `./sleevePicture.js`, `./SleeveMaterial.jsx`, …), from npm packages, and from the gallery's shared helpers in `src/lib/` (for task3: `ktx2.js` and `gpuBytes.js`), which you import but never edit.
 
 The panel beside the Canvas is the gallery's too. It reads two more files from your folder:
 
@@ -80,7 +80,7 @@ export function useSleevePicture() {
 }
 ```
 
-`new URL(…, import.meta.url)` resolves from the file's own location, so it keeps pointing at your folder after you copy `_template`; Vite copies the file into the build with a content hash and rewrites the URL, so it also works when the gallery is served from a subfolder. Never reference a route picture from the site root, and never put it in the repo-root `public/`. Your task3 `.ktx2` file is referenced the same way. The Basis transcoder is the exception. It is not in the repository yet: the instructor will vendor one shared copy at the repo-root `public/basis/` when the KTX2 loader lands (before task3), and the gallery builds its path from `import.meta.env.BASE_URL`. Do not copy it into your route.
+`new URL(…, import.meta.url)` resolves from the file's own location, so it keeps pointing at your folder after you copy `_template`; Vite copies the file into the build with a content hash and rewrites the URL, so it also works when the gallery is served from a subfolder. Never reference a route picture from the site root, and never put it in the repo-root `public/`. Your task3 `.ktx2` file is referenced the same way. The Basis transcoder is the exception: the gallery vendors one shared copy at the repo-root `public/basis/` (for three 0.185.1), and the shared loader `src/lib/ktx2.js` builds its path from `import.meta.env.BASE_URL`. Load your `.ktx2` with that loader's `useKTX2Texture(url)`, as `covers/_studio/src/sleeveKtx2.js` does, and measure it with `src/lib/gpuBytes.js`. Do not copy the transcoder into your route. `npm run encode -- <slug>` writes `public/sleeve-etc1s.ktx2` and `public/sleeve-uastc.ktx2` next to your `public/sleeve.png` (it needs `toktx`, and stops loudly without it).
 
 ### 3. Materials: register under a slug-unique name
 
@@ -155,7 +155,7 @@ Everything else in the file stays as the lesson wrote it. Never register a three
 
 5. **Open the PR.** The template fills in: what the PR does, the contract (own route + one registry object, no `App.jsx` rewrite), the acceptance bar, checks, accessibility, rights, and the **AI Review Log**.
 
-6. **Merge rules.** The `lint-and-build` check must pass and **one human** must approve. A human merges. Bots and assistants may comment; they **never approve and never merge**.
+6. **Merge rules.** The `lint-and-build` check must pass and **one human** must approve. Students never press Merge, not even on their own PR with a green check and an approval: the instructor merges. Bots and assistants may comment; they **never approve and never merge**.
 
    This is a course rule, held by the instructor merging only through pull requests. GitHub branch protection is not available on this repository's plan, so GitHub itself enforces neither the check nor the approval. As a collaborator you technically have push access, including to `main`: never push or force-push `main` yourself; always open a PR. A direct push to `main` breaks the contract and shows in the commit history and the Actions log.
 

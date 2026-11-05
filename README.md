@@ -42,15 +42,17 @@ src/
     CoverRoute.jsx         THE ROUTE: owns state, Canvas, panel; passes the five props
     registry.js            registry.json + import.meta.glob('../../covers/*/src/Cover.jsx')
     CanvasErrorBoundary.jsx
-  lib/                     BudgetProbe, budget verdict, reduced-motion hook, JSDoc typedefs
+  lib/                     BudgetProbe (+ Unit 9 per-frame probe), budget verdict, KTX2 loader,
+                           gpuBytes, reduced-motion hook, JSDoc typedefs
   theme/tokens.js          colour tokens (single source)
 covers/
   registry.json            [{ slug, title, album, authors }]
   _template/               copy to covers/<slug>/ — never a route
-  _studio/                 instructor reference route (stub until the reference scene lands)
+  _studio/                 instructor reference route: sleeve shader + PNG / ETC1S / UASTC compare
+public/basis/              the ONE vendored Basis transcoder pair (three 0.185.1)
 scripts/
   check-registry.mjs       registry schema + sort, unique R3F extend keys (runs in npm run lint)
-  encode-cover.mjs         PNG → ETC1S + UASTC KTX2 (stub; fails loudly without toktx)
+  encode-cover.mjs         PNG → ETC1S + UASTC KTX2, verified with ktx info (fails loudly without toktx)
 .cursor/rules/             00-project, 20-r3f-patterns, 30-shaders, 40-asset-pipeline, 50-performance
 .github/
   pull_request_template.md contract · acceptance · checks · a11y · rights · AI Review Log
@@ -74,4 +76,5 @@ This repository is private because it holds classroom artwork and sleeve photogr
 - **Review loop** (TTOD [`reviewing-cohort-prs.md`](https://github.com/ruvebal/ttod/blob/main/docs/public/guides/reviewing-cohort-prs.md)): check student PRs out in one sibling worktree, never in the teaching clone — `git fetch origin && git worktree add --detach ../feii-album-covers-review origin/main` (detached, because `main` is already checked out in the teaching clone), then `gh pr checkout <n>` there. Humans run `gh pr review --approve | --request-changes`; merge with `gh pr merge --squash`. A local model may comment; there is no cloud review workflow.
 - **Merge rule (D23, option d):** `lint-and-build` must pass and one human must approve. This is a course rule, enforced by the instructor merging only through PRs. GitHub branch protection is not available on this plan: the branch-protection and rulesets APIs return `403 Upgrade to GitHub Pro or make this repository public` for this private personal repository, and the repository stays on the personal account. Collaborators on a personal repository get push access, including to `main`, so a student could push or force-push `main`; CONTRIBUTING step 6 forbids it, and the commit history and Actions log show it. Keep a local mirror. `lint-and-build` runs on every PR and every push to `main`.
 - **CODEOWNERS** requests the instructor's review for `src/`, `scripts/`, `covers/_studio/`, `covers/_template/`, `.github/`, `.cursor/`, the README and CONTRIBUTING, `index.html`, `.gitignore`, and the package and build config. Without branch protection it requests a review; it does not block a merge. Student slugs are not instructor-owned.
-- **Shared assets**: the Basis transcoder will be vendored once at the repo-root `public/basis/` (path built from `import.meta.env.BASE_URL`) when the KTX2 loader lands; it is not in the repository yet. Routes never copy it.
+- **Shared assets**: the Basis transcoder is vendored once at the repo-root `public/basis/` (three 0.185.1's pair; see `public/basis/README.md`), and `src/lib/ktx2.js` builds its path from `import.meta.env.BASE_URL`. Routes never copy it. When the three pin changes, copy both files again. Vite also emits an unused hashed copy from three's default path into `dist/assets/`; that is expected.
+- **`/covers/_studio`** is the instructor's reference route: the Cover shaders sleeve material (extend key `StudioSleeve`) on an original sleeve, and the KTX2 hello-world switch (Flat / PNG / ETC1S / UASTC) with file bytes, computed GPU bytes, the texture count, `texture.format`, and colorSpace / colour / orientation checks. Its measured notes are in `covers/_studio/docs/`. Students copy `_template`, never `_studio`.

@@ -7,7 +7,8 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 // Same flat config as react-template (the Units 8–9 lesson sandbox), plus one
 // block for the Node-side files (Vite config, scripts/), which need Node globals.
 export default defineConfig([
-  globalIgnores(['dist']),
+  // public/basis/ is the vendored Basis transcoder (three 0.185.1), not our code.
+  globalIgnores(['dist', 'public/basis']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
