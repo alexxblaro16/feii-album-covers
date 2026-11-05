@@ -14,7 +14,10 @@
  *                             Lowercase kebab-case (`ok-computer`). Instructor
  *                             routes may use `_studio` or `_fixture-*`.
  * @property {string} title    Heading for discovery / selector (DOM text).
- * @property {string} album    The named album: "Artist — Album (year)".
+ * @property {string} concept  Artist/album naming + one-line pitch (replaces legacy `album`).
+ * @property {string} thumbnail Filename under `covers/<slug>/public/` for the gallery index.
+ * @property {string[]} tags   Short labels (e.g. webgl, dom, shader).
+ * @property {'wip'|'ready'|'reference'|'demo'} readiness Exhibition state for `/`.
  * @property {string[]} authors Team members (GitHub handles).
  */
 

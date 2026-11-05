@@ -8,29 +8,24 @@ git checkout -b cover-<slug>-task1-mesh
 cp -R covers/_template covers/<slug>
 ```
 
-Then add **one** object to `covers/registry.json` (keep the array valid JSON, **sorted by slug**, one object per line):
+Then add **one** object to `covers/registry.json` (valid JSON, **sorted by slug**, one object per line):
 
 ```json
-{ "slug": "<slug>", "title": "<Album title>", "album": "<Artist> — <Album> (<year>)", "authors": ["<github-handle>", "<github-handle>"] }
+{ "slug": "<slug>", "title": "<Album title>", "authors": ["<github-handle>"], "concept": "<Artist> — <Album> (<year>). One-line pitch for the gallery.", "thumbnail": "thumbnail.svg", "tags": ["dom"], "readiness": "wip" }
 ```
 
-`npm run dev` and open `/covers/<slug>`. That is the whole wiring: you never edit `src/App.jsx`.
+Replace `public/thumbnail.svg` with your own square preview when you have art. `npm run dev` → `/covers/<slug>`.
 
-## What is in the folder
+## Neutral starters (D26)
 
-| File | What it is | Task |
-| --- | --- | --- |
-| `src/Cover.jsx` | The Unit 8 cover Template. Your fork's `Cover.jsx` replaces it unchanged. | 1 |
-| `src/parts.js` | `PartId` + `PARTS`. The gallery panel renders one button per part and reads each `note` aloud. | 1 |
-| `src/budget.js` | Your `CEILING` (null until you measure). | 1 |
-| `src/sleevePicture.js` | How a route loads its own picture: `new URL('../public/sleeve.png', import.meta.url).href`. | 2 |
-| `public/sleeve.png` | Original placeholder (not an album cover). Replace with your own square picture. | 2–3 |
-| `docs/*.md` | The four hand-in documents, as Templates. | 1–3 |
+| Path | Role |
+| --- | --- |
+| `src/Route.jsx` | Default **DOM** endpoint (no mandated sleeve/vinyl stage). |
+| `starters/dom/` | Alternate DOM poster starter. |
+| `starters/webgl/` | Route-owned `<Canvas>` starter. |
+| `starters/hybrid/` | DOM + Canvas split starter. |
+| `docs/*.md` | Evidence templates (shader / KTX2 / budget — **N/A honestly** if your route never uses those technologies). |
 
-## The route contract, as this folder shows it
-
-1. **Props.** The gallery's `/covers/:slug` route owns `hovered`, `selected`, and `reduced` (from `prefers-reduced-motion`) and renders `<Cover hovered selected reduced onHover onSelect />` inside its own `<Canvas>` — the same five props as the Unit 8 fork's `App.jsx`. Your `Cover.jsx` has no `<Canvas>` and no state for those five values.
-2. **Pictures.** Your pictures live in `covers/<slug>/public/` and are referenced relative to the file that loads them, as `src/sleevePicture.js` does. Never by a path from the site root.
-3. **Materials.** R3F `extend` keys are shared by every route, so a material you add (task2's `SleeveMaterial.jsx`) is registered under a slug-unique key — `extend({ OkComputerSleeve: SleeveShader })` → `<okComputerSleeve …/>` — or with the component form, `const Sleeve = extend(SleeveShader)` → `<Sleeve …/>`. This folder registers none. `npm run lint` fails, naming both slugs, when two routes share a key.
+`covers/_studio` is **one reference** (sleeve shader + KTX2). Copy `_template`, not `_studio`.
 
 Full contract: [`CONTRIBUTING.md`](../../CONTRIBUTING.md#route-contract).

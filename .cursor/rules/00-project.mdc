@@ -8,38 +8,37 @@ alwaysApply: true
 ## Stack
 - Build: Vite (pins = `react-template`; do not bump without the instructor)
 - UI: React 19, plain CSS (`src/index.css`, colours from `src/theme/tokens.js`)
-- 3D: three.js + @react-three/fiber + @react-three/drei
+- 3D: three.js + @react-three/fiber + @react-three/drei (when a route chooses WebGL)
 - Routing: react-router-dom — one instructor-owned router in `src/App.jsx`
 - Language: JavaScript + JSDoc typedefs (`src/lib/types.js`). No TypeScript, no `tsc`
-- Assets: per-route PNG sources in `covers/<slug>/public/`; KTX2 (ETC1S or UASTC) via `scripts/encode-cover.mjs`
+- Assets: per-route PNG sources in `covers/<slug>/public/`; KTX2 (ETC1S or UASTC) via `scripts/encode-cover.mjs` when the route uses textures
 - No shadcn/ui, no Tailwind, no cloud LLM SDK dependencies
 
 ## Repo structure (enforce)
-- `src/` — instructor-owned gallery: router, `/covers/:slug` route, panel, shared `lib/`. Students do not edit it
+- `src/` — instructor-owned gallery: router, `/covers/:slug` shell, shared `lib/`. Students do not edit it
 - `src/lib/` — shared helpers (BudgetProbe, budget verdict, reduced-motion hook, JSDoc typedefs)
-- `covers/registry.json` — one `{ slug, title, album, authors }` object per route
-- `covers/<slug>/src/Cover.jsx` — default export; the R3F tree for one album; **no `<Canvas>`** (the gallery wraps it)
-- `covers/<slug>/src/parts.js` — `PartId` + `PARTS` for the panel; `budget.js` — the route's `CEILING`
-- `covers/<slug>/public/` — that route's pictures, referenced with `new URL('../public/<file>', import.meta.url).href`, never from the site root
-- `covers/<slug>/docs/` — renderer-info, shader-note, ktx2-note, ai-3d-merge-log
-- `covers/_template/` — copy source, never a route; `covers/_studio/` — instructor reference
+- `covers/registry.json` — one `{ slug, title, authors, concept, thumbnail, tags, readiness }` object per route
+- `covers/<slug>/src/Route.jsx` — default export; complete endpoint (DOM, WebGL, or hybrid)
+- `covers/<slug>/public/` — pictures + gallery thumbnail; reference with `new URL('../public/<file>', import.meta.url).href`
+- `covers/<slug>/docs/` — renderer-info, shader-note, ktx2-note, ai-3d-merge-log (honest N/A when a bar does not apply)
+- `covers/_template/` — neutral starters, never a route; `covers/_studio/` — instructor reference only
 - `scripts/` — Node pipelines (registry check, toktx encode)
 
 ## Route contract (do not break)
-- The `/covers/:slug` route owns `hovered`, `selected`, `reduced` and passes `hovered selected reduced onHover onSelect` to `Cover` — the same five props as the Unit 8 cover fork's `App.jsx`
-- A route never replaces `src/App.jsx`, never adds a second `<Canvas>`, never imports from another slug
+- Each slug is a complete endpoint (D26). The shell lazy-loads `Route.jsx` and does not wrap student work in a shared Canvas
+- A route never replaces `src/App.jsx`, never edits another slug's folder (except task4 with consent)
 
 ## Engineering values
 - Prefer explicit modules over barrel files
 - JavaScript only — validate shapes with JSDoc typedefs where helpful
-- Every Canvas route has a DOM fallback (the gallery's error boundary) with user-facing copy
-- Respect `prefers-reduced-motion`: the gallery passes `reduced`; every `useFrame` motion checks it
-- Type and controls stay in the DOM, not burned into the WebGL buffer
+- Unmount cleanup: dispose WebGL resources, cancel rAF, remove `document.documentElement` scope classes
+- Respect `prefers-reduced-motion` for any motion you add
+- Album title and controls stay in the DOM when possible, not burned into the WebGL buffer
 
 ## Git hygiene
 - Branch `cover-<slug>-task<N>-<short-topic-name>` from `main`; change only your slug + one registry object
-- Never commit uncompressed multi-megabyte PNGs as runtime textures; ship the chosen KTX2 (keep a reasonably sized source PNG for the encode)
+- Never commit uncompressed multi-megabyte PNGs as runtime textures; ship the chosen KTX2 when you use KTX2
 - No commercial album art without a declared right (photo of an album you own, or a named licence)
 
 ## When unsure
-- Read `CONTRIBUTING.md` (route contract, PR ritual) and the route's `docs/renderer-info.md` before adding effects or post-processing
+- Read `CONTRIBUTING.md` (route contract, PR ritual) and your route's `docs/` before adding effects

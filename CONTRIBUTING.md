@@ -21,15 +21,18 @@ You never edit `src/App.jsx`, `src/gallery/`, `src/lib/`, `scripts/`, `public/`,
 ### The registry object
 
 ```json
-{ "slug": "ok-computer", "title": "OK Computer", "album": "Radiohead — OK Computer (1997)", "authors": ["handle-one", "handle-two"] }
+{ "slug": "ok-computer", "title": "OK Computer", "authors": ["handle-one", "handle-two"], "concept": "Radiohead — OK Computer (1997). Recognisable sleeve as a DOM poster.", "thumbnail": "thumbnail.svg", "tags": ["dom"], "readiness": "wip" }
 ```
 
 | Field | Rule |
 | --- | --- |
 | `slug` | Lowercase kebab-case. It is your folder name and your URL: `/covers/<slug>`. |
-| `title` | The heading the panel shows — your album's title, as DOM text. |
-| `album` | The named album: `Artist — Album (year)`. |
+| `title` | Short heading for the gallery and project selector (album title as DOM text). |
 | `authors` | Your team's GitHub handles. |
+| `concept` | **Artist — Album (year)** plus one honest line for the exhibition index (replaces the old separate `album` field). |
+| `thumbnail` | Filename under `covers/<slug>/public/` (square preview; start from `_template/public/thumbnail.svg`). |
+| `tags` | Non-empty array of short labels (`webgl`, `dom`, `shader`, `ktx2`, …). |
+| `readiness` | `wip` while building, `ready` when your route meets the assignment bars; instructor routes use `reference` or `demo`. |
 
 Keep the array **sorted by slug** and put each object on one line. `npm run lint` checks this schema, the sort order, and that `covers/<slug>/src/Route.jsx` exists, on every PR. A slug that is not in the registry has no route.
 
@@ -50,7 +53,7 @@ The gallery shell (`src/gallery/CoverRoute.jsx`) lazy-loads `covers/<slug>/src/R
 - Import from your folder, npm packages, and read-only helpers in `src/lib/` (`ktx2.js`, `gpuBytes.js`, `BudgetProbe.jsx`, …). Never edit `src/gallery/`, `src/App.jsx`, or another team's slug.
 - Scope CSS with a route-specific class on `document.documentElement` or a root wrapper; remove it on unmount.
 
-The Unit 8 lab still teaches a fork with `App.jsx` + `Cover.jsx`; on the aggregator that composition lives **inside your** `Route.jsx` (see `_studio` for one reference layout). X15 will ship a neutral `_template` `Route.jsx`; until then, follow your task PR instructions.
+The Unit 8 lab still teaches a fork with `App.jsx` + `Cover.jsx`; on the aggregator that composition may live **inside your** `Route.jsx` if you choose WebGL — but DOM-only and hybrid routes are valid. See `_studio` for **one reference** layout, not the only hand-in.
 
 ### 2. Pictures: your files live in `covers/<slug>/public/`, referenced relative to your route
 
@@ -87,7 +90,7 @@ return <Sleeve ref={material} uMap={map} uHot={hot ? 1 : 0} />;
 
 Everything else in the file stays as the lesson wrote it. Never register a three.js name (`MeshStandardMaterial`, …) either: every route uses those. `npm run lint` lists every `extend({ … })` key under `covers/*/src/` and fails, naming both slugs, when two routes share one or a key shadows a three.js export.
 
-`covers/_template/` will gain a neutral `Route.jsx` in X15; it still holds the legacy Unit 8 `Cover.jsx` fork fragment for lesson parity until then.
+`covers/_template/` ships neutral `Route.jsx` starters (DOM default; optional `starters/webgl` and `starters/hybrid`). No mandated sleeve/vinyl stage.
 
 ---
 
@@ -125,9 +128,9 @@ Everything else in the file stays as the lesson wrote it. Never register a three
 
    | Task | What lands |
    | --- | --- |
-   | **task1 — mesh and scene** | Your fork's `Cover.jsx` and `parts.js`, a tree that reads as the named album; type and controls stay in the DOM; `docs/renderer-info.md` with your measured `cover` row and the same numbers in `src/budget.js`. |
-   | **task2 — authored shader** | One `sampler2D` sleeve effect (`SleeveMaterial.jsx`, `sleevePicture.js`) — not a paste of Unit 9's bulb; `docs/shader-note.md`; the new `textures` reading in `docs/renderer-info.md`. |
-   | **task3 — KTX2 and evidence** | Source PNG in `public/`, the chosen ETC1S or UASTC `.ktx2`, `docs/ktx2-note.md` (file bytes and computed GPU bytes), the completed renderer note, `docs/ai-3d-merge-log.md`. |
+   | **task1 — light the route** | `Route.jsx` default export, registry row (all metadata fields), `public/thumbnail.svg`, layout that reads as the named album; type and controls in the DOM; `docs/renderer-info.md` with measured rows **when WebGL applies**, or an honest N/A for pure DOM. |
+   | **task2 — authored shader** | **When your route uses a custom GLSL/sampler effect:** one effect you can explain (`docs/shader-note.md`); update renderer note if the budget moves. Pure DOM routes state N/A in `shader-note.md`. |
+   | **task3 — KTX2 and evidence** | **When your route loads GPU textures:** source PNG in `public/`, chosen ETC1S or UASTC `.ktx2`, `docs/ktx2-note.md` (file bytes and computed GPU bytes), completed renderer note, `docs/ai-3d-merge-log.md`. Pure DOM: document N/A — do not fake KTX2 numbers. |
    | **task4 — cross-cover** | A real fix in another team's slug (with their consent) or a shared gallery / accessibility fix, **and** at least one formal review of a PR outside your slug. |
 
 4. **Before you push**, run what CI runs:

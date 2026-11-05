@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Studio reference">
+  <rect width="120" height="120" fill="#2b2723"/>
+  <rect x="28" y="28" width="64" height="64" fill="#cfc6ba"/>
+  <circle cx="60" cy="60" r="18" fill="#1a1a1a"/>
+  <text x="60" y="108" text-anchor="middle" fill="#f6e2bc" font-family="system-ui,sans-serif" font-size="8">reference</text>
+</svg>

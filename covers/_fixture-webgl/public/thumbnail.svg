@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="WebGL fixture">
+  <rect width="120" height="120" fill="#0f1419"/>
+  <polygon points="60,24 92,72 28,72" fill="#7ec8a4"/>
+  <text x="60" y="98" text-anchor="middle" fill="#e8e6e3" font-family="system-ui,sans-serif" font-size="10">WebGL</text>
+</svg>

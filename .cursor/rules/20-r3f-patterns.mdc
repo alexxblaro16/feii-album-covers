@@ -8,18 +8,16 @@ globs:
 # R3F — patterns & guardrails
 
 ## Canvas setup
-- One `<Canvas>` per route, and the gallery owns it (`src/gallery/CoverRoute.jsx`). A cover's `Cover.jsx` renders a tree, never a `<Canvas>`
-- The gallery caps `dpr={[1, 1.5]}` (Unit 8). Do not raise it from a route
-- Lights, camera, `OrbitControls`, and `BudgetProbe` are the gallery's. Add a light inside your tree only with a `docs/renderer-info.md` row before/after
-- Default `resize` behaviour is fine; do not tune it per route
+- When your route uses WebGL, **your** `Route.jsx` owns `<Canvas>`, camera, lights, and controls (D26). The gallery shell does not mount a shared Canvas around student work
+- Cap `dpr={[1, 1.5]}` unless `docs/renderer-info.md` documents a measured reason
+- Add lights inside your tree with a `docs/renderer-info.md` row before/after when they affect budget
 
 ## useFrame discipline
 - **No new object allocations** in `useFrame` (no `new Vector3()` per frame)
 - Mutate reusable refs: `tmpV3.current.copy(...)`
 - Clamp `delta` (the course uses `Math.min(delta, 0.05)`) so a hidden tab cannot jump the animation
-- Return early when `reduced` is true: motion stops, interaction keeps working
-- Put simulation in `useFrame`; put **React state** updates behind throttling unless necessary (the probe commits ~1 Hz)
-- Order matters: use `priority` on `useFrame` when multiple subscribers must run in sequence
+- Return early when respecting reduced motion: motion stops, interaction keeps working
+- Put simulation in `useFrame`; put **React state** updates behind throttling unless necessary
 
 ## Memoization
 - Wrap expensive child trees in `React.memo` **after** measuring
@@ -28,20 +26,20 @@ globs:
 ## Disposal
 - When removing custom materials/geometries from the graph, call `dispose()` where three expects it
 - For textures made manually (`CanvasTexture`), dispose on unmount; prefer `useTexture` from drei with awareness of its shared cache
+- On route unmount: cancel rAF, remove listeners, drop `document.documentElement` scope classes
 
 ## Suspense & loading
-- The gallery wraps `Cover` in `<Suspense fallback={null}>` inside the Canvas; `useTexture` and lazy chunks suspend there. Do not add DOM fallbacks inside the Canvas
+- Wrap async texture loads in `<Suspense>` inside **your** Canvas when you use `useTexture` / KTX2 loaders
 
 ## Anti-patterns / render storms
 - Avoid `setState` every frame for values that can live in refs and be read by uniforms
 - Avoid inline `onPointerMove` that updates React state continuously — throttle or use refs
 - Do not recreate `new THREE.Color()` in render; hoist or memoize
-- Hover/click go through the five contract props (`onHover`, `onSelect`); do not keep a second copy of that state inside `Cover`
 
 ## extend — keys are global across routes
 - `extend({ Key: Class })` writes into ONE catalogue shared by every route. Two routes with the same key: the last chunk loaded wins and the other route renders the wrong material
-- Register under a slug-unique key — `extend({ OkComputerSleeve: SleeveShader })` → `<okComputerSleeve …/>` — or use the component form `const Sleeve = extend(SleeveShader)` → `<Sleeve …/>` (R3F generates the key)
-- Never register a three.js name (`MeshStandardMaterial`, …); `npm run lint` (`scripts/check-registry.mjs`) fails on shared keys and three.js names
+- Register under a slug-unique key — `extend({ OkComputerSleeve: SleeveShader })` → `<okComputerSleeve …/>` — or use the component form `const Sleeve = extend(SleeveShader)` → `<Sleeve …/>`
+- Never register a three.js name (`MeshStandardMaterial`, …); `npm run lint` fails on shared keys and three.js names
 
 ## Drei
 - Prefer helpers from `@react-three/drei` over reinventing loaders and controls

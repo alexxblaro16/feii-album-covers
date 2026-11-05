@@ -1,0 +1,16 @@
+.dom-starter {
+  min-height: 100dvh;
+  padding: 24px 20px;
+  box-sizing: border-box;
+}
+
+.dom-starter__poster {
+  margin: 24px 0 0;
+}
+
+.dom-starter__art {
+  aspect-ratio: 1;
+  max-width: 20rem;
+  background: linear-gradient(135deg, #556270, #4ecdc4);
+  border-radius: 8px;
+}

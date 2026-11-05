@@ -40,7 +40,7 @@ src/
   main.jsx                 BrowserRouter (basename from BASE_URL), tokens → CSS vars
   App.jsx                  instructor-owned router: / and /covers/:slug
   gallery/
-    Home.jsx               index: one link per registered cover
+    Home.jsx               visual exhibition index (thumbnails, readiness)
     CoverRoute.jsx         exhibition shell: lazy Route.jsx, error boundary, overlay nav
     ProjectSelector.jsx    collapsed fixed project switcher (keyboard accessible)
     RouteNav.jsx           prev / next / all projects
@@ -50,9 +50,9 @@ src/
                            gpuBytes, reduced-motion hook, JSDoc typedefs
   theme/tokens.js          colour tokens (single source)
 covers/
-  registry.json            [{ slug, title, album, authors }]
-  _template/               copy to covers/<slug>/ — never a route
-  _studio/                 instructor reference route: sleeve shader + PNG / ETC1S / UASTC compare
+  registry.json            [{ slug, title, authors, concept, thumbnail, tags, readiness }]
+  _template/               neutral Route.jsx starters (DOM / WebGL / hybrid) — never a route
+  _studio/                 instructor reference route (not the expected student answer)
 public/basis/              the ONE vendored Basis transcoder pair (three 0.185.1)
 scripts/
   check-registry.mjs       registry schema + sort, unique R3F extend keys (runs in npm run lint)
@@ -73,7 +73,7 @@ No MCP servers, MCP shopping, Stitch, 21st.dev, or other assistant servers, desi
 
 ## Rights
 
-This repository is private because it holds classroom artwork and sleeve photographs. **Private is not a licence.** Each route declares its picture's right in `docs/ktx2-note.md`: a photograph of a physical album the team owns, or a named licence. `_studio` uses original or PD/CC art only. The `_template` placeholder (`covers/_template/public/sleeve.png`) is original art made for this repository.
+The repository is **public** with GitHub Pages at [https://ruvebal.github.io/feii-album-covers/](https://ruvebal.github.io/feii-album-covers/) — classroom artwork is world-visible, so **licence and IP matter more, not less** (D8). Each route declares its picture's right in `docs/ktx2-note.md`: a photograph of a physical album the team owns, or a named licence. `_studio` uses original or PD/CC art only. The `_template` placeholder art is original material made for this repository.
 
 ## Instructor notes
 
