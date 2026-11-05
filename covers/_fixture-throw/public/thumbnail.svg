@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Error fixture">
+  <rect width="120" height="120" fill="#2b1f1f"/>
+  <text x="60" y="58" text-anchor="middle" fill="#ff6b6b" font-family="system-ui,sans-serif" font-size="28">!</text>
+  <text x="60" y="98" text-anchor="middle" fill="#e8e6e3" font-family="system-ui,sans-serif" font-size="9">boundary</text>
+</svg>

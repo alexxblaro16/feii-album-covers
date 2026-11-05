@@ -2,7 +2,8 @@
 // scripts/check-registry.mjs — runs inside `npm run lint` (and so in CI).
 //
 // Checks covers/registry.json against the schema every route relies on:
-//   - a JSON array of { slug, title, album, authors } objects;
+//   - a JSON array of { slug, title, authors, concept, thumbnail, tags, readiness };
+//     (X15: former `album` field folds into title + concept — see CONTRIBUTING.md)
 //   - slug is lowercase kebab-case (only the instructor's `_studio` may start
 //     with an underscore), unique, and never `_template`;
 //   - covers/<slug>/src/Route.jsx exists for every slug (D26 complete endpoint);
@@ -28,6 +29,8 @@ import * as THREE from 'three';
 
 const PATH = 'covers/registry.json';
 const SLUG = /^(?:_studio|_fixture-[a-z0-9]+(?:-[a-z0-9]+)*|[a-z0-9]+(?:-[a-z0-9]+)*)$/;
+const FIELDS = ['slug', 'title', 'authors', 'concept', 'thumbnail', 'tags', 'readiness'];
+const READINESS = new Set(['wip', 'ready', 'reference', 'demo']);
 const errors = [];
 
 let registry;
@@ -50,9 +53,11 @@ registry.forEach((entry, index) => {
     errors.push(`${at}: must be an object.`);
     return;
   }
-  const { slug, title, album, authors } = entry;
-  const extra = Object.keys(entry).filter((key) => !['slug', 'title', 'album', 'authors'].includes(key));
-  if (extra.length) errors.push(`${at}: unknown field(s) ${extra.join(', ')} — the schema is slug, title, album, authors.`);
+  const { slug, title, authors, concept, thumbnail, tags, readiness } = entry;
+  const extra = Object.keys(entry).filter((key) => !FIELDS.includes(key));
+  if (extra.length) {
+    errors.push(`${at}: unknown field(s) ${extra.join(', ')} — the schema is ${FIELDS.join(', ')}.`);
+  }
   if (typeof slug !== 'string' || !SLUG.test(slug)) {
     errors.push(`${at}: slug ${JSON.stringify(slug)} must be lowercase kebab-case (e.g. "ok-computer").`);
     return;
@@ -60,7 +65,20 @@ registry.forEach((entry, index) => {
   if (seen.has(slug)) errors.push(`${at}: slug "${slug}" appears twice.`);
   seen.add(slug);
   if (typeof title !== 'string' || !title.trim()) errors.push(`${at}: title must be a non-empty string.`);
-  if (typeof album !== 'string' || !album.trim()) errors.push(`${at}: album must be a non-empty string ("Artist — Album (year)").`);
+  if (typeof concept !== 'string' || !concept.trim()) {
+    errors.push(`${at}: concept must be a non-empty string (artist/album + one-line pitch).`);
+  }
+  if (typeof thumbnail !== 'string' || !thumbnail.trim()) {
+    errors.push(`${at}: thumbnail must be a filename under covers/${slug}/public/ (e.g. "thumbnail.svg").`);
+  } else if (!existsSync(`covers/${slug}/public/${thumbnail}`)) {
+    errors.push(`${at}: covers/${slug}/public/${thumbnail} is missing — add a square preview for the gallery index.`);
+  }
+  if (!Array.isArray(tags) || tags.length === 0 || !tags.every((t) => typeof t === 'string' && t.trim())) {
+    errors.push(`${at}: tags must be a non-empty array of short strings (e.g. ["webgl", "dom"]).`);
+  }
+  if (typeof readiness !== 'string' || !READINESS.has(readiness)) {
+    errors.push(`${at}: readiness must be one of ${[...READINESS].join(', ')}.`);
+  }
   if (!Array.isArray(authors) || authors.length === 0 || !authors.every((a) => typeof a === 'string' && a.trim())) {
     errors.push(`${at}: authors must be a non-empty array of names/handles.`);
   }

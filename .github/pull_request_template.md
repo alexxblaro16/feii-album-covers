@@ -14,7 +14,7 @@ ASSIGNMENT.md in this repo.
 
 - [ ] Changes only `covers/<slug>/**` plus **one** object in `covers/registry.json` (task4: the other team's slug, with their consent, or a shared gallery/a11y fix)
 - [ ] Does not edit `src/App.jsx`, `src/gallery/`, `src/lib/`, or the registry schema
-- [ ] `Cover.jsx` default-exports a component that takes the gallery's five props (`hovered`, `selected`, `reduced`, `onHover`, `onSelect`) and renders no `<Canvas>`
+- [ ] `covers/<slug>/src/Route.jsx` default-exports a complete endpoint (your team owns DOM and/or Canvas inside this module)
 - [ ] Pictures live in `covers/<slug>/public/` and are referenced relative to the route (`new URL('../public/…', import.meta.url)`), never by a path from the site root
 
 ## Correctness & acceptance criteria
@@ -28,7 +28,7 @@ ASSIGNMENT.md in this repo.
 
 ## Accessibility
 
-- [ ] Keyboard-operable (the panel buttons reach every part), one accessible name per control, no colour-only cue, motion stops under `prefers-reduced-motion` — applies to every PR regardless of task
+- [ ] Keyboard-operable controls, one accessible name per control, no colour-only cue, motion stops under `prefers-reduced-motion` — applies to every PR regardless of task
 - [ ] Album title and controls are DOM text, not pixels in the WebGL buffer
 
 ## Rights (D8)

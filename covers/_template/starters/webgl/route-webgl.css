@@ -1,0 +1,14 @@
+.webgl-starter {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.webgl-starter header {
+  padding: 16px 20px;
+}
+
+.webgl-starter canvas {
+  width: 100% !important;
+  height: 100% !important;
+}

@@ -1,0 +1,25 @@
+.hybrid-starter {
+  display: grid;
+  grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.hybrid-starter__panel {
+  padding: 16px;
+  border-right: 1px solid var(--fe-outline, #3f3f46);
+}
+
+.hybrid-starter__canvas {
+  min-height: 12rem;
+}
+
+.hybrid-starter__off {
+  padding: 24px;
+  color: var(--fe-ink-muted, #a8a29e);
+}
+
+@media (max-width: 720px) {
+  .hybrid-starter {
+    grid-template-columns: 1fr;
+  }
+}
