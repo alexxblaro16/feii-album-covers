@@ -21,15 +21,17 @@ Pins match `react-template`: `react` / `react-dom` 19.3.1, `three` 0.185.1, `@re
 
 To serve from a subfolder, build with `BASE_PATH=/feii-album-covers/ npm run build` (and preview with the same variable). The router's `basename` and every built path come from `import.meta.env.BASE_URL`.
 
-## Route contract (summary)
+## Route contract (summary, D26)
 
 The full text is in [`CONTRIBUTING.md`](CONTRIBUTING.md#route-contract).
 
-1. **Props.** The gallery's `/covers/:slug` route (`src/gallery/CoverRoute.jsx`) owns `hovered`, `selected`, and `reduced` (from `prefers-reduced-motion`) and renders `<Cover hovered selected reduced onHover onSelect />` inside its own `<Canvas>` — the same five props the Unit 8 cover fork's `App.jsx` passes. A fork's `Cover.jsx` moves over unchanged; it never renders a `<Canvas>`.
-2. **Pictures.** Each route keeps its pictures in `covers/<slug>/public/` and references them relative to the loading module — `new URL('../public/sleeve.png', import.meta.url).href` — never by a path from the site root.
-3. **Materials.** R3F `extend` keys are shared by every route. Register a material under a slug-unique key (`extend({ OkComputerSleeve: SleeveShader })` → `<okComputerSleeve …/>`) or use the component form (`const Sleeve = extend(SleeveShader)` → `<Sleeve …/>`). `npm run lint` fails when two slugs share a key.
+Each `/covers/<slug>` is a **complete student-authored endpoint**: your team owns DOM, Canvas (if any), camera, controls, state, layout, and CSS for that URL. The exhibition shell (`src/gallery/CoverRoute.jsx`) only routes, lazy-loads your module, isolates errors, and supplies a collapsed fixed project selector plus prev/next/all navigation — it does **not** mount a shared `<Canvas>` around student work.
 
-`covers/_template/` shows 1 and 2.
+1. **Module.** Default-export one component from `covers/<slug>/src/Route.jsx`. The gallery lazy-loads it when the slug is lit in `covers/registry.json`.
+2. **Pictures.** Each route keeps its pictures in `covers/<slug>/public/` and references them relative to the loading module — `new URL('../public/sleeve.png', import.meta.url).href` — never by a path from the site root.
+3. **Materials.** When you use R3F, `extend` keys are shared by every route. Register under a slug-unique key or use the component form. `npm run lint` fails when two slugs share a key.
+
+`covers/_studio` is a **reference**, not a prescribed composition (sleeve shader + KTX2 compare). Instructor fixtures `_fixture-webgl` and `_fixture-dom` prove WebGL-only and DOM-first formats.
 
 ## Layout
 
@@ -39,8 +41,10 @@ src/
   App.jsx                  instructor-owned router: / and /covers/:slug
   gallery/
     Home.jsx               index: one link per registered cover
-    CoverRoute.jsx         THE ROUTE: owns state, Canvas, panel; passes the five props
-    registry.js            registry.json + import.meta.glob('../../covers/*/src/Cover.jsx')
+    CoverRoute.jsx         exhibition shell: lazy Route.jsx, error boundary, overlay nav
+    ProjectSelector.jsx    collapsed fixed project switcher (keyboard accessible)
+    RouteNav.jsx           prev / next / all projects
+    registry.js            registry.json + import.meta.glob('../../covers/*/src/Route.jsx')
     CanvasErrorBoundary.jsx
   lib/                     BudgetProbe (+ Unit 9 per-frame probe), budget verdict, KTX2 loader,
                            gpuBytes, reduced-motion hook, JSDoc typedefs
@@ -59,7 +63,7 @@ scripts/
   workflows/lint-and-build.yml   npm ci → lint → build (no deploy, no secrets)
 ```
 
-A slug is a route only when it is both in `covers/registry.json` **and** has `covers/<slug>/src/Cover.jsx`.
+A slug is a route only when it is both in `covers/registry.json` **and** has `covers/<slug>/src/Route.jsx`.
 
 ## Collaboration
 

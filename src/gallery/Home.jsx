@@ -10,13 +10,13 @@ export default function Home() {
     <main className="gallery">
       <h1>Album covers — FE II Units 8–9</h1>
       <p className="lede">
-        One route per team at <code>/covers/&lt;slug&gt;</code>. Open a cover to orbit it, hover and
-        click its parts, and read its budget.
+        One complete student-authored endpoint per team at <code>/covers/&lt;slug&gt;</code>. Each route
+        owns its layout, Canvas (if any), and interaction. The gallery shell only routes and navigates.
       </p>
 
       {missingModules.length > 0 ? (
         <p className="notice warn" role="status">
-          In the registry but missing <code>src/Cover.jsx</code>: {missingModules.join(', ')}
+          In the registry but missing <code>src/Route.jsx</code>: {missingModules.join(', ')}
         </p>
       ) : null}
 

@@ -7,9 +7,9 @@ import Home from './gallery/Home.jsx';
  *
  * Every cover is one route, `/covers/:slug`. The route is on when BOTH exist:
  *   1. an object with that `slug` in `covers/registry.json`, and
- *   2. the module `covers/<slug>/src/Cover.jsx`.
+ *   2. the module `covers/<slug>/src/Route.jsx` (complete endpoint, D26).
  * `src/gallery/registry.js` finds the modules with
- * `import.meta.glob('../../covers/*\/src/Cover.jsx')` and joins them to the
+ * `import.meta.glob('../../covers/*\/src/Route.jsx')` and joins them to the
  * registry. A slug that is not in the registry has no route.
  *
  * The route component is lazy, so three.js and R3F stay out of the index page.

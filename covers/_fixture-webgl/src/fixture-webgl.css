@@ -1,0 +1,31 @@
+html.route-_fixture-webgl body {
+  background: #0f1419;
+}
+
+.fixture-webgl {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  color: #e8eef2;
+}
+
+.fixture-webgl__head {
+  padding: 12px 16px;
+  border-bottom: 1px solid #2a3540;
+}
+
+.fixture-webgl__head h1 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.fixture-webgl__head p {
+  margin: 0;
+  font-size: 13px;
+  color: #9fb0bd;
+}
+
+.fixture-webgl canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
