@@ -145,7 +145,7 @@ Everything else in the file stays as the lesson wrote it. Never register a three
 
 6. **Merge rules.** The `lint-and-build` check must pass and **one human** must approve. Students never press Merge, not even on their own PR with a green check and an approval: the instructor merges. Bots and assistants may comment; they **never approve and never merge**.
 
-   This is a course rule, held by the instructor merging only through pull requests. GitHub branch protection is not available on this repository's plan, so GitHub itself enforces neither the check nor the approval. As a collaborator you technically have push access, including to `main`: never push or force-push `main` yourself; always open a PR. A direct push to `main` breaks the contract and shows in the commit history and the Actions log.
+   This is a course rule, held by the instructor merging only through pull requests. Branch protection on `main` now **requires** a green `lint-and-build` check and at least one approving review; force-push to `main` is disabled. Still never push `main` yourself — always open a PR. The repository is public (Pages); IP declarations (D8) are non-negotiable.
 
 ### AI Review Log
 

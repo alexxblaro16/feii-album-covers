@@ -1,5 +1,5 @@
 # The check every PR into main must pass before the instructor merges it. A course
-# rule, not GitHub branch protection (not available on this plan; see README, Instructor notes).
+# rule; branch protection on main also requires this check (D23, 2026-11-05).
 # The JavaScript analogue of TTOD's typecheck-and-build: install from the
 # lockfile, lint (ESLint + registry schema), build. No deploy job, no secrets.
 name: lint-and-build
