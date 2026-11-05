@@ -38,6 +38,11 @@ globs:
 - Do not recreate `new THREE.Color()` in render; hoist or memoize
 - Hover/click go through the five contract props (`onHover`, `onSelect`); do not keep a second copy of that state inside `Cover`
 
+## extend — keys are global across routes
+- `extend({ Key: Class })` writes into ONE catalogue shared by every route. Two routes with the same key: the last chunk loaded wins and the other route renders the wrong material
+- Register under a slug-unique key — `extend({ OkComputerSleeve: SleeveShader })` → `<okComputerSleeve …/>` — or use the component form `const Sleeve = extend(SleeveShader)` → `<Sleeve …/>` (R3F generates the key)
+- Never register a three.js name (`MeshStandardMaterial`, …); `npm run lint` (`scripts/check-registry.mjs`) fails on shared keys and three.js names
+
 ## Drei
 - Prefer helpers from `@react-three/drei` over reinventing loaders and controls
 - Document when `PerformanceMonitor` is used and what downgrades it triggers

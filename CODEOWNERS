@@ -1,16 +1,24 @@
-# Instructor-owned paths. A PR touching any of these needs the instructor's review.
+# Instructor-owned paths. A PR touching any of these automatically requests the
+# instructor's review. GitHub branch protection is not available on this plan,
+# so this file requests a review; it does not block a merge. The merge
+# rule (CI passes, one human approves) is a course rule, held by the instructor
+# merging only through PRs.
 # Student routes (covers/<slug>/) are deliberately NOT listed: the teams own them,
-# and the human approval required by branch protection can come from a peer.
+# and the one human approval the course rule asks for can come from a peer.
 # covers/registry.json is shared: every team adds exactly one object.
 
-/src/              @ruvebal
-/scripts/          @ruvebal
-/covers/_studio/   @ruvebal
-/covers/_template/ @ruvebal
-/.github/          @ruvebal
-/.cursor/          @ruvebal
-/CODEOWNERS        @ruvebal
-/package.json      @ruvebal
-/package-lock.json @ruvebal
-/vite.config.js    @ruvebal
-/eslint.config.js  @ruvebal
+/src/               @ruvebal
+/scripts/           @ruvebal
+/covers/_studio/    @ruvebal
+/covers/_template/  @ruvebal
+/.github/           @ruvebal
+/.cursor/           @ruvebal
+/CODEOWNERS         @ruvebal
+/README.md          @ruvebal
+/CONTRIBUTING.md    @ruvebal
+/index.html         @ruvebal
+/.gitignore         @ruvebal
+/package.json       @ruvebal
+/package-lock.json  @ruvebal
+/vite.config.js     @ruvebal
+/eslint.config.js   @ruvebal

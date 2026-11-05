@@ -5,7 +5,7 @@
 
 This repository is the class aggregator for the FE II [Units 8–9 assignment](https://ruvebal.github.io/web-atelier-udit/lessons/en/feii/units-8-9-assignment/): one gallery, one **route per team** at `/covers/<slug>`. You hand in your album cover as a short series of pull requests that light and then grow your route. The assignment page holds the grading bars; this file holds the mechanics. Read the [AI-assisted 3D covenant](https://ruvebal.github.io/web-atelier-udit/lessons/en/feii/ai-assisted-3d-covenant/) before your first prompt.
 
-The ritual is the one you already used in TTOD ([`contributing.md`](https://github.com/ruvebal/ttod/blob/main/docs/public/guides/contributing.md)): a named branch from `main`, changes inside your own boundary, the PR template, a required CI check, one human approval, the AI Review Log, small staged PRs, and at least one contribution and one review outside your own work. The only thing that changes is the boundary: in TTOD it was a module seam; **here it is your cover slug**.
+The ritual is the one you already used in TTOD ([`contributing.md`](https://github.com/ruvebal/ttod/blob/main/docs/public/guides/contributing.md)): a named branch from `main`, changes inside your own boundary, the PR template, a CI check that must pass, one human approval, the AI Review Log, small staged PRs, and at least one contribution and one review outside your own work. The only thing that changes is the boundary: in TTOD it was a module seam; **here it is your cover slug**.
 
 ---
 
@@ -31,13 +31,13 @@ You never edit `src/App.jsx`, `src/gallery/`, `src/lib/`, `scripts/`, `.github/`
 | `album` | The named album: `Artist — Album (year)`. |
 | `authors` | Your team's GitHub handles. |
 
-`npm run lint` checks this schema (and that `covers/<slug>/src/Cover.jsx` exists) on every PR. A slug that is not in the registry has no route.
+Keep the array **sorted by slug** and put each object on one line. `npm run lint` checks this schema, the sort order, and that `covers/<slug>/src/Cover.jsx` exists, on every PR. A slug that is not in the registry has no route.
 
 ---
 
 ## Route contract
 
-Published lessons depend on this contract. It is what lets the cover you built in the Unit 8 lab fork move onto your route **unchanged**.
+Published lessons depend on this contract. It is what lets the cover you built in the Unit 8 lab fork move onto your route **unchanged**. The one exception is the `extend` key of a material you register (item 3).
 
 ### 1. Props: the route owns the state; `Cover` receives five props
 
@@ -80,9 +80,29 @@ export function useSleevePicture() {
 }
 ```
 
-`new URL(…, import.meta.url)` resolves from the file's own location, so it keeps pointing at your folder after you copy `_template`; Vite copies the file into the build with a content hash and rewrites the URL, so it also works when the gallery is served from a subfolder. Never reference a route picture from the site root, and never put it in the repo-root `public/`. Your task3 `.ktx2` file is referenced the same way. The Basis transcoder is the exception: the gallery vendors one shared copy at the site root and builds its path from `import.meta.env.BASE_URL` — do not copy it into your route.
+`new URL(…, import.meta.url)` resolves from the file's own location, so it keeps pointing at your folder after you copy `_template`; Vite copies the file into the build with a content hash and rewrites the URL, so it also works when the gallery is served from a subfolder. Never reference a route picture from the site root, and never put it in the repo-root `public/`. Your task3 `.ktx2` file is referenced the same way. The Basis transcoder is the exception. It is not in the repository yet: the instructor will vendor one shared copy at the repo-root `public/basis/` when the KTX2 loader lands (before task3), and the gallery builds its path from `import.meta.env.BASE_URL`. Do not copy it into your route.
 
-`covers/_template/` shows both rules: `src/Cover.jsx` (the Unit 8 cover Template, unchanged) and `src/sleevePicture.js` with `public/sleeve.png` (an original placeholder, not an album cover).
+### 3. Materials: register under a slug-unique name
+
+React Three Fiber's `extend` writes into **one catalogue shared by every route**. If two covers both call `extend({ SleeveShader })`, whichever cover loaded last owns the name, and the other cover silently renders the wrong shader. The Cover shaders lesson's `SleeveMaterial.jsx` registers `SleeveShader`, so when you move it onto your route, change that one line in either of two ways:
+
+```jsx
+// Either: a key that starts with your slug, used as the lower-camel-case element.
+extend({ OkComputerSleeve: SleeveShader });
+// …
+return <okComputerSleeve ref={material} uMap={map} uHot={hot ? 1 : 0} />;
+```
+
+```jsx
+// Or: the component form. R3F generates a key that cannot collide.
+const Sleeve = extend(SleeveShader);
+// …
+return <Sleeve ref={material} uMap={map} uHot={hot ? 1 : 0} />;
+```
+
+Everything else in the file stays as the lesson wrote it. Never register a three.js name (`MeshStandardMaterial`, …) either: every route uses those. `npm run lint` lists every `extend({ … })` key under `covers/*/src/` and fails, naming both slugs, when two routes share one or a key shadows a three.js export.
+
+`covers/_template/` shows rules 1 and 2 (it registers no material): `src/Cover.jsx` (the Unit 8 cover Template, unchanged) and `src/sleevePicture.js` with `public/sleeve.png` (an original placeholder, not an album cover).
 
 ---
 
@@ -105,6 +125,17 @@ export function useSleevePicture() {
 
    Later tasks edit that folder only.
 
+   **Expected conflict on `covers/registry.json`.** Every team adds one object to the same array, so a PR opened before another team's merge often conflicts there. Resolve it like this:
+
+   ```bash
+   git fetch origin && git rebase origin/main
+   # in covers/registry.json: keep BOTH objects (theirs and yours), delete the conflict markers,
+   # keep the array sorted by slug, one object per line, valid JSON
+   git add covers/registry.json && git rebase --continue
+   npm run lint                         # checks the JSON, the schema and the sort order
+   git push --force-with-lease          # your own cover-… branch only, never main
+   ```
+
 3. **Stage the work.** Small PRs defend better than one dump:
 
    | Task | What lands |
@@ -124,7 +155,9 @@ export function useSleevePicture() {
 
 5. **Open the PR.** The template fills in: what the PR does, the contract (own route + one registry object, no `App.jsx` rewrite), the acceptance bar, checks, accessibility, rights, and the **AI Review Log**.
 
-6. **Merge rules.** The required `lint-and-build` check must pass and **one human** must approve. A human merges. Bots and assistants may comment; they **never approve and never merge**.
+6. **Merge rules.** The `lint-and-build` check must pass and **one human** must approve. A human merges. Bots and assistants may comment; they **never approve and never merge**.
+
+   This is a course rule, held by the instructor merging only through pull requests. GitHub branch protection is not available on this repository's plan, so GitHub itself enforces neither the check nor the approval. As a collaborator you technically have push access, including to `main`: never push or force-push `main` yourself; always open a PR. A direct push to `main` breaks the contract and shows in the commit history and the Actions log.
 
 ### AI Review Log
 
@@ -166,7 +199,7 @@ Review against the assignment bars and the PR template's checklist, not a genera
 - **TTOD's quote-proposal two-approval workflow.** That governs TTOD's quote collection; here a PR has one human approval.
 - **An in-app `ASSIGNMENT.md`.** The criteria live on the FE II assignment page.
 - **Cloud PR-review automation.** There is no cloud review workflow and no API key; an optional local first pass may comment, never decide.
-- **Assistant-server, design-generator, or editor-plugin installs** as homework. The covenant explains why.
+- **MCP servers, MCP shopping, Stitch, 21st.dev, or any other assistant-server, design-generator, or editor-plugin install** as homework. The covenant explains why.
 - **A second sandbox or a rewrite of `src/App.jsx`.** The gallery already owns the router and the route contract.
 
 ## Sources

@@ -18,7 +18,7 @@ globs:
 - Runtime: KTX2 (Basis Universal) — ETC1S or UASTC, chosen and explained in `docs/ktx2-note.md` with file bytes AND computed GPU bytes
 - Encode with `npm run encode -- <slug>` (needs `toktx`; the script fails loudly without it). Installing the encoder on every laptop is not a lab outcome
 - Check `texture.colorSpace` after loading a KTX2 sleeve (`'srgb'` for a photo) and its orientation (a packed sleeve is not flipped on upload). Fix the encode, not the shader
-- Use the transcoder the gallery vendors (path from `import.meta.env.BASE_URL`); never a CDN copy, never a second copy in your route
+- Use the one transcoder the instructor vendors at the repo-root `public/basis/` (lands with the KTX2 loader; path from `import.meta.env.BASE_URL`); never a CDN copy, never a second copy in your route
 
 ## Models
 - Ship **glTF 2.0** as `.glb` if a route uses a model at all; run `gltf-transform inspect` and record the triangle count in `docs/renderer-info.md`

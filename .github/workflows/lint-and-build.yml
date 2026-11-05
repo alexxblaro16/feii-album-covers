@@ -1,4 +1,5 @@
-# Required check for every PR into main (branch protection: `lint-and-build`).
+# The check every PR into main must pass before the instructor merges it. A course
+# rule, not GitHub branch protection (not available on this plan; see README, Instructor notes).
 # The JavaScript analogue of TTOD's typecheck-and-build: install from the
 # lockfile, lint (ESLint + registry schema), build. No deploy job, no secrets.
 name: lint-and-build
@@ -21,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm

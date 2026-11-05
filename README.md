@@ -27,8 +27,9 @@ The full text is in [`CONTRIBUTING.md`](CONTRIBUTING.md#route-contract).
 
 1. **Props.** The gallery's `/covers/:slug` route (`src/gallery/CoverRoute.jsx`) owns `hovered`, `selected`, and `reduced` (from `prefers-reduced-motion`) and renders `<Cover hovered selected reduced onHover onSelect />` inside its own `<Canvas>` — the same five props the Unit 8 cover fork's `App.jsx` passes. A fork's `Cover.jsx` moves over unchanged; it never renders a `<Canvas>`.
 2. **Pictures.** Each route keeps its pictures in `covers/<slug>/public/` and references them relative to the loading module — `new URL('../public/sleeve.png', import.meta.url).href` — never by a path from the site root.
+3. **Materials.** R3F `extend` keys are shared by every route. Register a material under a slug-unique key (`extend({ OkComputerSleeve: SleeveShader })` → `<okComputerSleeve …/>`) or use the component form (`const Sleeve = extend(SleeveShader)` → `<Sleeve …/>`). `npm run lint` fails when two slugs share a key.
 
-`covers/_template/` shows both.
+`covers/_template/` shows 1 and 2.
 
 ## Layout
 
@@ -48,7 +49,7 @@ covers/
   _template/               copy to covers/<slug>/ — never a route
   _studio/                 instructor reference route (stub until the reference scene lands)
 scripts/
-  check-registry.mjs       registry schema (runs in npm run lint)
+  check-registry.mjs       registry schema + sort, unique R3F extend keys (runs in npm run lint)
   encode-cover.mjs         PNG → ETC1S + UASTC KTX2 (stub; fails loudly without toktx)
 .cursor/rules/             00-project, 20-r3f-patterns, 30-shaders, 40-asset-pipeline, 50-performance
 .github/
@@ -60,9 +61,9 @@ A slug is a route only when it is both in `covers/registry.json` **and** has `co
 
 ## Collaboration
 
-The TTOD contribution ritual, mapped onto cover routes: branch `cover-<slug>-task<N>-<short-topic-name>` from `main`; change only your slug plus one registry object; the PR template with its **AI Review Log**; the required `lint-and-build` check and **one human approval**; small staged PRs (task1 mesh → task2 shader → task3 KTX2 → task4 cross-cover); at least one PR into another slug and one formal review outside your own. Bots and assistants may comment; they never approve or merge. Details: [`CONTRIBUTING.md`](CONTRIBUTING.md). Contribution epigraph: Tao of Development `qa-007`.
+The TTOD contribution ritual, mapped onto cover routes: branch `cover-<slug>-task<N>-<short-topic-name>` from `main`; change only your slug plus one registry object; the PR template with its **AI Review Log**; the `lint-and-build` check and **one human approval** (a course rule: the instructor merges only through PRs; see [`CONTRIBUTING.md`](CONTRIBUTING.md) step 6); small staged PRs (task1 mesh → task2 shader → task3 KTX2 → task4 cross-cover); at least one PR into another slug and one formal review outside your own. Bots and assistants may comment; they never approve or merge. Details: [`CONTRIBUTING.md`](CONTRIBUTING.md). Contribution epigraph: Tao of Development `qa-007`.
 
-No assistant servers, design generators, or editor plugins are homework here. The covenant is the student contract; everything else is optional.
+No MCP servers, MCP shopping, Stitch, 21st.dev, or other assistant servers, design generators, or editor plugins are homework here. The covenant is the student contract; everything else is optional.
 
 ## Rights
 
@@ -70,7 +71,7 @@ This repository is private because it holds classroom artwork and sleeve photogr
 
 ## Instructor notes
 
-- **Review loop** (TTOD [`reviewing-cohort-prs.md`](https://github.com/ruvebal/ttod/blob/main/docs/public/guides/reviewing-cohort-prs.md)): check student PRs out in one sibling worktree, never in the teaching clone — `git worktree add ../feii-album-covers-review main`, then `gh pr checkout <n>` there. Humans run `gh pr review --approve | --request-changes`; merge with `gh pr merge --squash`. A local model may comment; there is no cloud review workflow.
-- **Branch protection on `main`** (intended): required check `lint-and-build`, one approving review, no force-push. **Not enforced yet:** on the current GitHub plan both the branch-protection and rulesets APIs return `403 Upgrade to GitHub Pro or make this repository public` for this private repository. Until the plan changes, the merge rule is held by review convention, and `lint-and-build` still runs on every PR and every push to `main`.
-- **CODEOWNERS** routes `src/`, `scripts/`, `covers/_studio/`, `covers/_template/`, `.github/`, `.cursor/`, and the build config to the instructor. Student slugs are not instructor-owned.
-- **Shared assets**: the Basis transcoder is vendored once at `public/basis/` (path built from `import.meta.env.BASE_URL`) when the KTX2 loader lands; routes never copy it.
+- **Review loop** (TTOD [`reviewing-cohort-prs.md`](https://github.com/ruvebal/ttod/blob/main/docs/public/guides/reviewing-cohort-prs.md)): check student PRs out in one sibling worktree, never in the teaching clone — `git fetch origin && git worktree add --detach ../feii-album-covers-review origin/main` (detached, because `main` is already checked out in the teaching clone), then `gh pr checkout <n>` there. Humans run `gh pr review --approve | --request-changes`; merge with `gh pr merge --squash`. A local model may comment; there is no cloud review workflow.
+- **Merge rule (D23, option d):** `lint-and-build` must pass and one human must approve. This is a course rule, enforced by the instructor merging only through PRs. GitHub branch protection is not available on this plan: the branch-protection and rulesets APIs return `403 Upgrade to GitHub Pro or make this repository public` for this private personal repository, and the repository stays on the personal account. Collaborators on a personal repository get push access, including to `main`, so a student could push or force-push `main`; CONTRIBUTING step 6 forbids it, and the commit history and Actions log show it. Keep a local mirror. `lint-and-build` runs on every PR and every push to `main`.
+- **CODEOWNERS** requests the instructor's review for `src/`, `scripts/`, `covers/_studio/`, `covers/_template/`, `.github/`, `.cursor/`, the README and CONTRIBUTING, `index.html`, `.gitignore`, and the package and build config. Without branch protection it requests a review; it does not block a merge. Student slugs are not instructor-owned.
+- **Shared assets**: the Basis transcoder will be vendored once at the repo-root `public/basis/` (path built from `import.meta.env.BASE_URL`) when the KTX2 loader lands; it is not in the repository yet. Routes never copy it.

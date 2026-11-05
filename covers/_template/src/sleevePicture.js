@@ -13,7 +13,8 @@
 // Never write a root path for your picture: every team would fight over one file.
 //
 // The KTX2 task (task3) references its .ktx2 file the same way. The Basis
-// transcoder is NOT yours to copy: the gallery vendors one shared copy and
+// transcoder is NOT yours to copy: the instructor will vendor one shared copy
+// at the repo-root public/basis/ when the KTX2 loader lands, and the gallery
 // builds its path from import.meta.env.BASE_URL.
 
 import { useTexture } from '@react-three/drei';
