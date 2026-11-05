@@ -14,7 +14,7 @@ export default function RouteNav({ slug }) {
   const next = index < covers.length - 1 ? covers[index + 1] : null;
 
   return (
-    <nav className="route-nav" aria-label="Cover navigation">
+    <nav className="route-nav" aria-label="Cover navigation" data-exhibition-nav="route-nav">
       {prev ? (
         <Link className="route-nav__link route-nav__prev" to={`/covers/${prev.slug}`} rel="prev">
           ← {prev.title}

@@ -58,7 +58,10 @@ export default function ProjectSelector() {
   };
 
   return (
-    <div className={`project-select${open ? ' project-select--open' : ''}`}>
+    <div
+      className={`project-select${open ? ' project-select--open' : ''}`}
+      data-exhibition-nav="project-selector"
+    >
       <button
         ref={triggerRef}
         type="button"

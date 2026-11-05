@@ -41,7 +41,7 @@ Each `/covers/<slug>` is a **complete student-authored endpoint**. Your team own
 
 The gallery shell (`src/gallery/CoverRoute.jsx`) lazy-loads `covers/<slug>/src/Route.jsx` inside an error boundary. Unmount your route when navigating away: dispose WebGL textures, cancel `requestAnimationFrame`, remove listeners, and drop `document.documentElement` scope classes so another slug cannot inherit your runtime.
 
-`covers/_studio` is a **reference**, not a prescribed composition (sleeve shader + KTX2 compare on an original sleeve). Instructor fixtures `_fixture-webgl` and `_fixture-dom` show WebGL-only and DOM-first endpoints.
+`covers/_studio` is a **reference**, not a prescribed composition (sleeve shader + KTX2 compare on an original sleeve). Instructor fixtures `_fixture-webgl`, `_fixture-dom`, and `_fixture-throw` (error-boundary demo) show WebGL-only, DOM-first, and failing routes. Run `npm run smoke:x14` after changing shell or fixture cleanup behaviour.
 
 ### 1. Module: `Route.jsx` default export
 

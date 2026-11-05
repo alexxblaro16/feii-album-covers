@@ -10,4 +10,8 @@ const base = process.env.BASE_PATH || '/';
 export default defineConfig({
   base,
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.js'],
+  },
 });
