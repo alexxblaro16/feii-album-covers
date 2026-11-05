@@ -5,7 +5,7 @@
 //   - a JSON array of { slug, title, album, authors } objects;
 //   - slug is lowercase kebab-case (only the instructor's `_studio` may start
 //     with an underscore), unique, and never `_template`;
-//   - covers/<slug>/src/Cover.jsx exists for every slug;
+//   - covers/<slug>/src/Route.jsx exists for every slug (D26 complete endpoint);
 //   - the array is sorted by slug, so two teams' task1 PRs add lines in
 //     different places and a registry.json conflict stays trivial to resolve.
 //
@@ -27,7 +27,7 @@ import process from 'node:process';
 import * as THREE from 'three';
 
 const PATH = 'covers/registry.json';
-const SLUG = /^(?:_studio|[a-z0-9]+(?:-[a-z0-9]+)*)$/;
+const SLUG = /^(?:_studio|_fixture-[a-z0-9]+(?:-[a-z0-9]+)*|[a-z0-9]+(?:-[a-z0-9]+)*)$/;
 const errors = [];
 
 let registry;
@@ -64,8 +64,8 @@ registry.forEach((entry, index) => {
   if (!Array.isArray(authors) || authors.length === 0 || !authors.every((a) => typeof a === 'string' && a.trim())) {
     errors.push(`${at}: authors must be a non-empty array of names/handles.`);
   }
-  if (!existsSync(`covers/${slug}/src/Cover.jsx`)) {
-    errors.push(`${at}: covers/${slug}/src/Cover.jsx does not exist — copy covers/_template/ first.`);
+  if (!existsSync(`covers/${slug}/src/Route.jsx`)) {
+    errors.push(`${at}: covers/${slug}/src/Route.jsx does not exist — copy covers/_template/ first (X15 neutral template).`);
   }
 });
 

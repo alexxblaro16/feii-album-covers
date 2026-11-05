@@ -1,4 +1,4 @@
-// covers/_studio/src/Cover.jsx — the instructor's reference route, /covers/_studio.
+// covers/_studio/src/StudioScene.jsx — R3F tree for the studio reference Route.jsx.
 //
 // Students copy covers/_template/ to light THEIR route; they do not fork this
 // folder. It shows the whole chain on one original sleeve (D8: palette.js and
@@ -150,7 +150,7 @@ function Ktx2Sleeve({ mode, ...props }) {
 /**
  * @param {import('../../../src/lib/types.js').CoverProps} props
  */
-export default function Cover({ hovered, selected, reduced, onHover, onSelect }) {
+export default function StudioScene({ hovered, selected, reduced, onHover, onSelect }) {
   const disc = useRef(null);
   const phase = useRef(0);
   const headingId = useId();

@@ -1,3 +1,6 @@
 [
+  { "slug": "_fixture-dom", "title": "Fixture — DOM poster", "album": "Instructor demo — original DOM layout (not an album cover)", "authors": ["ruvebal"] },
+  { "slug": "_fixture-throw", "title": "Fixture — error boundary", "album": "Instructor demo — throws on render (not an album cover)", "authors": ["ruvebal"] },
+  { "slug": "_fixture-webgl", "title": "Fixture — WebGL prism", "album": "Instructor demo — minimal Canvas route (not an album cover)", "authors": ["ruvebal"] },
   { "slug": "_studio", "title": "Studio reference — Signal & Grain", "album": "Original sleeve made for this repository (not an album cover)", "authors": ["ruvebal"] }
 ]

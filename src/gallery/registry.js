@@ -2,27 +2,20 @@ import { lazy } from 'react';
 import registry from '../../covers/registry.json';
 
 /**
- * Joins `covers/registry.json` to the route modules on disk.
+ * Joins `covers/registry.json` to lazy route endpoints on disk (D26).
  *
  * Globs are relative to THIS file (src/gallery/), so `../../covers/` is the
- * repo's `covers/` folder. Vite expands them at build time:
- *   - Cover.jsx  — lazy: each cover is its own chunk, loaded when its route opens.
- *   - parts.js   — eager: the panel needs PARTS before the scene arrives. Small.
- *   - budget.js  — eager, only the CEILING export. Optional per route.
+ * repo's `covers/` folder. Each registered slug must export a default
+ * `Route.jsx` — a complete student-authored endpoint (DOM, Canvas, layout).
  *
- * `_template` matches the glob, so CI compiles it on every build, but it is
- * never a route: `scripts/check-registry.mjs` refuses it in the registry, and
- * it is filtered out below as well.
+ * `_template` may match the glob when present, but it is never a route:
+ * `scripts/check-registry.mjs` refuses it in the registry, and it is filtered
+ * out below as well.
  */
-const coverModules = import.meta.glob('../../covers/*/src/Cover.jsx');
-const partsModules = import.meta.glob('../../covers/*/src/parts.js', { eager: true });
-const ceilingModules = import.meta.glob('../../covers/*/src/budget.js', {
-  eager: true,
-  import: 'CEILING',
-});
+const routeModules = import.meta.glob('../../covers/*/src/Route.jsx');
 
 /**
- * `../../covers/<slug>/src/Cover.jsx` → `<slug>`
+ * `../../covers/<slug>/src/Route.jsx` → `<slug>`
  *
  * @param {string} path
  * @returns {string}
@@ -43,16 +36,12 @@ function bySlug(modules) {
   return out;
 }
 
-const loaders = bySlug(coverModules);
-const partsBySlug = bySlug(partsModules);
-const ceilingBySlug = bySlug(ceilingModules);
+const loaders = bySlug(routeModules);
 
 /**
  * @typedef {import('../lib/types.js').RegistryEntry & {
- *   Cover: import('react').ComponentType<import('../lib/types.js').CoverProps>,
- *   parts: import('../lib/types.js').PartInfo[],
- *   ceiling: import('../lib/types.js').Ceiling | null,
- * }} GalleryCover
+ *   Route: import('react').ComponentType<Record<string, never>>,
+ * }} GalleryRoute
  */
 
 /** @type {import('../lib/types.js').RegistryEntry[]} */
@@ -62,20 +51,18 @@ const entries = Array.isArray(registry) ? registry : [];
  * Every lit route, in registry order. `React.lazy` is called once per cover,
  * here at module level, never during render.
  *
- * @type {GalleryCover[]}
+ * @type {GalleryRoute[]}
  */
 export const covers = entries
   .filter((entry) => entry.slug !== '_template' && loaders[entry.slug])
   .map((entry) => ({
     ...entry,
     authors: Array.isArray(entry.authors) ? entry.authors : [],
-    Cover: lazy(loaders[entry.slug]),
-    parts: partsBySlug[entry.slug]?.PARTS ?? [],
-    ceiling: ceilingBySlug[entry.slug] ?? null,
+    Route: lazy(loaders[entry.slug]),
   }));
 
 /**
- * Registry slugs with no `covers/<slug>/src/Cover.jsx`. `npm run lint` fails
+ * Registry slugs with no `covers/<slug>/src/Route.jsx`. `npm run lint` fails
  * on these in CI; the index page also lists them so a local mistake is visible.
  *
  * @type {string[]}
@@ -86,7 +73,7 @@ export const missingModules = entries
 
 /**
  * @param {string | undefined} slug
- * @returns {GalleryCover | null}
+ * @returns {GalleryRoute | null}
  */
 export function findCover(slug) {
   return covers.find((cover) => cover.slug === slug) ?? null;

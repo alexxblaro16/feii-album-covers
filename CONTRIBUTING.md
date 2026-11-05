@@ -31,41 +31,26 @@ You never edit `src/App.jsx`, `src/gallery/`, `src/lib/`, `scripts/`, `public/`,
 | `album` | The named album: `Artist — Album (year)`. |
 | `authors` | Your team's GitHub handles. |
 
-Keep the array **sorted by slug** and put each object on one line. `npm run lint` checks this schema, the sort order, and that `covers/<slug>/src/Cover.jsx` exists, on every PR. A slug that is not in the registry has no route.
+Keep the array **sorted by slug** and put each object on one line. `npm run lint` checks this schema, the sort order, and that `covers/<slug>/src/Route.jsx` exists, on every PR. A slug that is not in the registry has no route.
 
 ---
 
-## Route contract
+## Route contract (D26)
 
-Published lessons depend on this contract. It is what lets the cover you built in the Unit 8 lab fork move onto your route **unchanged**. The one exception is the `extend` key of a material you register (item 3).
+Each `/covers/<slug>` is a **complete student-authored endpoint**. Your team owns format, DOM, Canvas (if any), camera, controls, state, layout, interaction, and route-scoped CSS. The aggregator owns discovery, routing, a collapsed fixed project selector, prev/next/all navigation, lazy loading, per-route error isolation, and production checks — it does **not** wrap your work in a shared `<Canvas>` or side panel.
 
-### 1. Props: the route owns the state; `Cover` receives five props
+The gallery shell (`src/gallery/CoverRoute.jsx`) lazy-loads `covers/<slug>/src/Route.jsx` inside an error boundary. Unmount your route when navigating away: dispose WebGL textures, cancel `requestAnimationFrame`, remove listeners, and drop `document.documentElement` scope classes so another slug cannot inherit your runtime.
 
-In the Unit 8 cover fork, `App.jsx` owned the state and rendered:
+`covers/_studio` is a **reference**, not a prescribed composition (sleeve shader + KTX2 compare on an original sleeve). Instructor fixtures `_fixture-webgl`, `_fixture-dom`, and `_fixture-throw` (error-boundary demo) show WebGL-only, DOM-first, and failing routes. Run `npm run smoke:x14` after changing shell or fixture cleanup behaviour.
 
-```jsx
-<Cover
-  hovered={hovered}
-  selected={selected}
-  reduced={reduced}
-  onHover={setHovered}
-  onSelect={setSelected}
-/>
-```
+### 1. Module: `Route.jsx` default export
 
-On the aggregator, the gallery's `/covers/:slug` route component (`src/gallery/CoverRoute.jsx`) plays that `App.jsx`'s part. It owns `hovered`, `selected`, and `reduced` (from `prefers-reduced-motion`), supplies the `<Canvas>`, the lights, `OrbitControls`, and `BudgetProbe`, and renders the default export of `covers/<slug>/src/Cover.jsx` with **the same five props**: `hovered`, `selected`, `reduced`, `onHover`, `onSelect`.
+- Add `covers/<slug>/src/Route.jsx` and default-export one React component that fills the viewport for your experience.
+- You may compose R3F, plain DOM, or hybrid layouts inside this file (and helpers under your slug folder).
+- Import from your folder, npm packages, and read-only helpers in `src/lib/` (`ktx2.js`, `gpuBytes.js`, `BudgetProbe.jsx`, …). Never edit `src/gallery/`, `src/App.jsx`, or another team's slug.
+- Scope CSS with a route-specific class on `document.documentElement` or a root wrapper; remove it on unmount.
 
-So your `Cover.jsx`:
-
-- default-exports one component that takes those five props;
-- renders a tree, **never a `<Canvas>`** (the gallery wraps it);
-- keeps no state of its own for those five values, and adds no `BudgetProbe`;
-- imports only from its own folder (`./parts.js`, `./sleevePicture.js`, `./SleeveMaterial.jsx`, …), from npm packages, and from the gallery's shared helpers in `src/lib/` (for task3: `ktx2.js` and `gpuBytes.js`), which you import but never edit.
-
-The panel beside the Canvas is the gallery's too. It reads two more files from your folder:
-
-- `src/parts.js` — `PARTS` (and `PartId`), exactly as in the fork. One button per part; each `note` is read aloud through `aria-live`.
-- `src/budget.js` — `CEILING`, your accepted ceiling. In the fork it lived in `BudgetProbe.jsx`; here the probe is shared, so the ceiling moves into your folder. Leave it `null` until you have measured your own tree.
+The Unit 8 lab still teaches a fork with `App.jsx` + `Cover.jsx`; on the aggregator that composition lives **inside your** `Route.jsx` (see `_studio` for one reference layout). X15 will ship a neutral `_template` `Route.jsx`; until then, follow your task PR instructions.
 
 ### 2. Pictures: your files live in `covers/<slug>/public/`, referenced relative to your route
 
@@ -102,7 +87,7 @@ return <Sleeve ref={material} uMap={map} uHot={hot ? 1 : 0} />;
 
 Everything else in the file stays as the lesson wrote it. Never register a three.js name (`MeshStandardMaterial`, …) either: every route uses those. `npm run lint` lists every `extend({ … })` key under `covers/*/src/` and fails, naming both slugs, when two routes share one or a key shadows a three.js export.
 
-`covers/_template/` shows rules 1 and 2 (it registers no material): `src/Cover.jsx` (the Unit 8 cover Template, unchanged) and `src/sleevePicture.js` with `public/sleeve.png` (an original placeholder, not an album cover).
+`covers/_template/` will gain a neutral `Route.jsx` in X15; it still holds the legacy Unit 8 `Cover.jsx` fork fragment for lesson parity until then.
 
 ---
 
