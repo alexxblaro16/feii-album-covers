@@ -36,6 +36,7 @@ const SHOUTS = [
   ['hee', '¡Ji-ji!'],
   ['ow', '¡Au!'],
   ['whoo', '¡Uuh!'],
+  ['hoo', '¡Hoo!'],
   ['snap', 'Chasquido'],
 ];
 
@@ -179,6 +180,7 @@ export default function Route() {
       if (!quiet) at(250, 'hee');
     } else if (name === 'kick') {
       if (!quiet) at(180, 'ow');
+      at(560, 'hoo');
     } else {
       v.play('squeak');
       at(MOVES.glide * 380, 'squeak');
