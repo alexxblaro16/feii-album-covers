@@ -51,7 +51,32 @@ function roomImpulse(ctx) {
   return buf;
 }
 
+/**
+ * Gritos con voz humana sintética: generados con Kokoro (modelo de voz libre,
+ * Apache 2.0) en el ordenador del estudiante, subidos a falsete y con eco de
+ * estudio (script en docs/ktx2-note.md). No son grabaciones de Michael. Si no
+ * cargan, se usa el sintetizador de formantes de abajo.
+ */
+const SAMPLES = {
+  hee: new URL('../public/sounds/hee.mp3', import.meta.url).href,
+  ow: new URL('../public/sounds/ow.mp3', import.meta.url).href,
+  whoo: new URL('../public/sounds/whoo.mp3', import.meta.url).href,
+  hoo: new URL('../public/sounds/hoo.mp3', import.meta.url).href,
+};
+
 export function createVoice() {
+  // Los ficheros se piden al entrar; se decodifican con el primer clic.
+  const aborter = new AbortController();
+  const raw = Object.fromEntries(
+    Object.entries(SAMPLES).map(([name, url]) => [
+      name,
+      fetch(url, { signal: aborter.signal })
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .catch(() => null),
+    ]),
+  );
+  /** @type {Record<string, Promise<AudioBuffer | null>>} */
+  const decoded = {};
   let ctx = null;
   let out = null;
   let wave = null;
@@ -250,11 +275,25 @@ export function createVoice() {
 
   return {
     /** @param {keyof typeof sounds} name */
-    play(name) {
+    async play(name) {
       ensure();
+      if (raw[name]) {
+        decoded[name] ??= raw[name].then((b) => (b && ctx ? ctx.decodeAudioData(b) : null)).catch(() => null);
+        const buf = await decoded[name];
+        if (buf && ctx) {
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          // Un pelín de variación de tono: no suena dos veces exactamente igual.
+          src.playbackRate.value = 0.97 + Math.random() * 0.06;
+          src.connect(out);
+          src.start();
+          return;
+        }
+      }
       sounds[name]();
     },
     dispose() {
+      aborter.abort();
       if (ctx) ctx.close();
       ctx = null;
     },
