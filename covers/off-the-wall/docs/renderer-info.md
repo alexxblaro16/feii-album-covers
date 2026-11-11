@@ -32,3 +32,5 @@ Móvil: sin medir en un teléfono real, pero las cuatro vistas quedan ya por deb
 
 Monitor en directo del plató (`LiveMonitor.jsx`) y moonwalk nuevo. Medido en Intel UHD el 2026-11-11 con el panel ?budget: Portada 74 calls / 189 646 tri / 67 geometrías; De lado 70 / 189 552 / 69; Por detrás 66 / 188 056 / 71; El plató 76 / 189 738 / 71; 7 texturas; unos 60 fps. El monitor hace una segunda pasada de render a una textura de 512 px que `renderer.info` no recoge (se reinicia en cada render), así que se midió aparte contando las llamadas de WebGL de cada fotograma con todas las pasadas (sombra, monitor y escena): como mucho 95 en escritorio y 95 en móvil simulado (390x844), por debajo del tope de 200 de escritorio. La pasada del monitor solo se hace si se ve y está de cara, cada 2 fotogramas en escritorio y una sola vez en pantallas pequeñas o táctiles.
 
+
+Esmoquin abierto (fajín y botones de camisa) y monitor a 512 px, medido en Intel UHD el 2026-11-11: Portada 77 calls / 189 998 tri / 70 geometrías; De lado 73 / 189 904 / 72; Por detrás 70 / 188 548 / 74; El plató 80 / 190 230 / 74; 7 texturas. Todas dentro del techo y en el tope de móvil (El plató, justo en 80).
