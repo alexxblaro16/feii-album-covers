@@ -275,10 +275,13 @@ function useGeometries() {
     const vTo = (y) => vWidth(y);
     return {
       jacket: new LatheGeometry(JACKET.map(([r, y]) => new Vector2(r, y)), 64),
-      // Pechera en V: estrecha abajo, ancha junto al cuello.
-      shirtV: chestBand(0.26, 0.585, vFrom, vTo, 0.0035),
-      lapelL: chestBand(0.2, 0.56, (y) => vWidth(y), (y) => vWidth(y) + lapelWidth(y), 0.006),
-      lapelR: chestBand(0.2, 0.56, (y) => -vWidth(y) - lapelWidth(y), (y) => -vWidth(y), 0.006),
+      // Chaqueta abierta: la camisa se ve desde la cintura hasta el cuello.
+      shirtV: chestBand(0.03, 0.585, vFrom, vTo, 0.0035),
+      // Fajín de raso negro en la cintura, dentro de la abertura.
+      sash: chestBand(0.035, 0.085, (y) => -vWidth(y) - 0.01, (y) => vWidth(y) + 0.01, 0.0045),
+      // Solapas a lo largo de todo el borde abierto de la chaqueta.
+      lapelL: chestBand(0.06, 0.56, (y) => vWidth(y), (y) => vWidth(y) + lapelWidth(y), 0.006),
+      lapelR: chestBand(0.06, 0.56, (y) => -vWidth(y) - lapelWidth(y), (y) => -vWidth(y), 0.006),
       trouser: trouserGeometry(),
       afro: afroGeometry(),
       ...headGeometries(),
@@ -288,16 +291,19 @@ function useGeometries() {
   return geos;
 }
 
-/** Media abertura (en radianes) de la V de la camisa a cada altura. */
+/**
+ * Media abertura (en radianes) de la chaqueta a cada altura: va abierta de
+ * arriba abajo, algo más estrecha en la cintura y ancha junto al cuello.
+ */
 function vWidth(y) {
-  const t = Math.max(0, Math.min(1, (y - 0.26) / (0.585 - 0.26)));
-  return 0.02 + t * 0.42;
+  const t = Math.max(0, Math.min(1, (y - 0.03) / (0.585 - 0.03)));
+  return 0.17 + t * t * 0.27;
 }
 
 /** Anchura de la solapa a cada altura: se ensancha en el pecho y se cierra arriba. */
 function lapelWidth(y) {
-  const t = Math.max(0, Math.min(1, (y - 0.2) / 0.36));
-  return 0.05 + Math.sin(t * Math.PI) * 0.17;
+  const t = Math.max(0, Math.min(1, (y - 0.06) / 0.5));
+  return 0.04 + Math.sin(t * Math.PI) ** 1.5 * 0.17;
 }
 
 /** Brazo: hombro, codo, puño blanco de la camisa y mano. */
@@ -469,10 +475,13 @@ export default function Michael({ move, playing, reduced, level, onStep, onHover
           <mesh geometry={geos.shirtV} material={mats.shirt} />
           <mesh geometry={geos.lapelL} material={mats.satin} castShadow />
           <mesh geometry={geos.lapelR} material={mats.satin} castShadow />
-          {/* Botón del esmoquin a la altura de la cintura. */}
-          <mesh position={[0, 0.2, jacketRadius(0.2) * FLAT + 0.006]} material={mats.satin}>
-            <sphereGeometry args={[0.011, 12, 8]} />
-          </mesh>
+          <mesh geometry={geos.sash} material={mats.satin} />
+          {/* Botones de la camisa, en la abertura de la chaqueta abierta. */}
+          {[0.16, 0.27, 0.38].map((y) => (
+            <mesh key={y} position={[0, y, jacketRadius(y) * FLAT + 0.006]} material={mats.satin}>
+              <sphereGeometry args={[0.006, 8, 6]} />
+            </mesh>
+          ))}
           {/* Pajarita: dos lazos y el nudo. */}
           <group position={[0, 0.565, jacketRadius(0.565) * FLAT + 0.035]}>
             {[-1, 1].map((s) => (

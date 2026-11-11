@@ -19,6 +19,8 @@ export const VIEWS = {
   side: { label: 'De lado', position: [3.1, 1.35, 1.6], target: [0, 1.0, -0.2] },
   behind: { label: 'Por detrás de Michael', position: [-0.95, 1.65, -1.55], target: [0.55, 1.05, 2.6] },
   set: { label: 'El plató', position: [-3.3, 2.9, 6.9], target: [0.2, 0.8, 0.9] },
+  // Delante del monitor del plató: se ve lo que graba la cámara del trípode.
+  monitor: { label: 'El monitor', position: [-1.85, 1.42, 5.3], target: [-0.95, 1.3, 4.25] },
 };
 
 

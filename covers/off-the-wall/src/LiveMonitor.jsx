@@ -4,7 +4,7 @@
 // la foto de la portada.
 //
 // Rendimiento: la imagen del monitor es una segunda pasada de render a una
-// textura de 320 px. Solo se hace cuando el monitor está dentro de la vista y
+// textura de 512 px. Solo se hace cuando el monitor está dentro de la vista y
 // de cara a la cámara, y en escritorio cada 2 fotogramas. En pantallas
 // pequeñas o táctiles se pinta una sola vez (imagen fija), para no doblar las
 // llamadas de dibujo en el móvil. `renderer.info` se reinicia en cada render,
@@ -28,7 +28,7 @@ import {
   WebGLRenderTarget,
 } from 'three';
 
-const SIZE = 320;
+const SIZE = 512;
 const SCREEN = 0.62;
 // Junto a la cámara del trípode, fuera del encuadre de la portada y girado
 // hacia quien mira el plató (sin tapar a Michael desde ninguna vista).
