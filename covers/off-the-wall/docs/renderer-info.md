@@ -24,4 +24,6 @@ Fotogramas: unos 60 por segundo en esa máquina (contados con `requestAnimationF
 
 task2 (shader de los ladrillos): mismas lecturas en las cuatro vistas (79 / 76 / 79 / 96 calls, unos 191 000 triángulos, 6 texturas); el shader no añade llamadas ni texturas.
 
-Móvil: sin medir en un teléfono real. En la vista "El plató" se pasa del tope de 80 llamadas (96); en las otras tres vistas queda en 76–79. Si hace falta, el siguiente paso es fusionar las piezas estáticas de Michael en menos mallas.
+Cabeza nueva (afro que enmarca la cara, ojos, cejas, patillas, nariz y sonrisa) con las piezas de la cara fundidas en una malla por material (`mergeGeometries`): la cabeza pasa de unas 25 llamadas a 7. Medido en Intel UHD el 2026-11-11: Portada 70 calls / 189 090 tri / 63 geometrías; De lado 67 / 188 970 / 69; Por detrás 72 / 187 808 / 80; El plató 87 / 189 598 / 80; 6 texturas y unos 60 fps. Las cuatro vistas quedan por debajo del techo aceptado.
+
+Móvil: sin medir en un teléfono real. Portada, De lado y Por detrás quedan ya por debajo del tope de 80 llamadas (67–72); la vista "El plató" sigue por encima (87). El siguiente paso sería fusionar también las piezas del plató (trípode y ventanas de luz).

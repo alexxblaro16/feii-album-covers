@@ -13,17 +13,24 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   BufferGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
   Color,
   DoubleSide,
+  Euler,
   Float32BufferAttribute,
   IcosahedronGeometry,
   LatheGeometry,
+  Matrix4,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  Quaternion,
+  SphereGeometry,
   Vector2,
+  Vector3,
 } from 'three';
 import { movePose } from './dances.js';
 import { MICHAEL } from './set.js';
@@ -120,15 +127,87 @@ function afroGeometry() {
     const ny = y / len;
     const nz = z / len;
     // Ruido barato y estable: la misma dirección da siempre el mismo bulto,
-    // así los vértices repetidos de la malla no se separan.
-    const broad = Math.sin(nx * 5.1 + ny * 2.3) * Math.cos(ny * 4.7 - nz * 3.2) * 0.04;
+    // así los vértices repetidos de la malla no se separan. La forma general
+    // es casi una bola (el afro de 1979 era redondo y uniforme); los rizos,
+    // pequeños y apretados.
+    const broad = Math.sin(nx * 5.1 + ny * 2.3) * Math.cos(ny * 4.7 - nz * 3.2) * 0.015;
     const curls =
-      Math.sin(nx * 61.3 + ny * 17.9) * Math.cos(ny * 57.1 - nz * 23.4) * Math.sin(nz * 49.7 + nx * 13.1) * 0.035;
-    const k = 1 + broad + curls;
+      Math.sin(nx * 83.3 + ny * 27.9) * Math.cos(ny * 77.1 - nz * 33.4) * Math.sin(nz * 69.7 + nx * 23.1) * 0.03 +
+      Math.sin(nx * 151.7 - nz * 41.3) * Math.cos(ny * 139.2 + nx * 19.6) * 0.012;
+    // Hueco de la cara: delante y por debajo de la frente el pelo se mete
+    // hacia dentro, para que el afro enmarque la cara en vez de taparla.
+    const front = Math.max(0, Math.min(1, (nz - 0.05) / 0.45));
+    const low = Math.max(0, Math.min(1, (0.4 - ny) / 0.3));
+    const face = front * low;
+    // Por debajo de la nuca se cierra hacia el cuello.
+    const neck = Math.max(0, Math.min(1, (-0.45 - ny) / 0.35));
+    const k = (1 + broad + curls) * (1 - 0.52 * face) * (1 - 0.35 * neck);
     p.setXYZ(i, nx * 0.17 * k, ny * 0.17 * k, nz * 0.17 * k);
   }
   g.computeVertexNormals();
   return g;
+}
+
+/** Coloca una geometría (posición, giro y escala) para fundirla con otras. */
+function place(geo, pos, rot = [0, 0, 0], scale = [1, 1, 1]) {
+  const m = new Matrix4().compose(
+    new Vector3(...pos),
+    new Quaternion().setFromEuler(new Euler(...rot)),
+    new Vector3(...scale),
+  );
+  geo.applyMatrix4(m);
+  return geo;
+}
+
+/** Funde varias piezas en una sola geometría y libera las piezas sueltas. */
+function fuse(parts) {
+  const g = mergeGeometries(parts);
+  parts.forEach((x) => x.dispose());
+  return g;
+}
+
+/**
+ * Piezas de la cara agrupadas por material: piel (cráneo, mandíbula, orejas,
+ * párpados, pómulos y nariz), blanco de los ojos, iris, pelo fino (cejas y
+ * patillas), labios y dientes.
+ */
+function headGeometries() {
+  const sides = [-1, 1];
+  return {
+    headSkin: fuse([
+      place(new SphereGeometry(0.105, 32, 24), [0, 0, 0], [0, 0, 0], [0.86, 1.1, 0.96]),
+      place(new SphereGeometry(0.1, 28, 20), [0, -0.04, 0.014], [0, 0, 0], [0.84, 0.82, 0.9]),
+      ...sides.flatMap((s) => [
+        place(new SphereGeometry(0.03, 12, 10), [s * 0.096, -0.005, -0.005], [0, 0, 0], [0.45, 1, 0.75]),
+        // Párpado de arriba: da la mirada sonriente.
+        place(new SphereGeometry(0.019, 14, 8), [s * 0.036, 0.027, 0.091], [0, 0, s * 0.12], [1.35, 0.28, 0.5]),
+        // Pómulo marcado.
+        place(new SphereGeometry(0.022, 14, 10), [s * 0.045, -0.016, 0.06], [0, 0, 0], [1, 0.7, 0.55]),
+      ]),
+      // Nariz fina: puente estrecho y punta pequeña.
+      place(new SphereGeometry(0.012, 12, 10), [0, 0.006, 0.1], [0, 0, 0], [0.55, 1.6, 0.6]),
+      place(new SphereGeometry(0.014, 14, 10), [0, -0.014, 0.106], [0, 0, 0], [1.25, 0.8, 0.8]),
+    ]),
+    // Ojos grandes y algo almendrados, con el iris oscuro casi entero.
+    eyeWhites: fuse(
+      sides.map((s) => place(new SphereGeometry(0.018, 14, 10), [s * 0.036, 0.014, 0.086], [0, 0, s * 0.12], [1.3, 0.78, 0.6])),
+    ),
+    irises: fuse(sides.map((s) => place(new SphereGeometry(0.0105, 12, 10), [s * 0.035, 0.014, 0.096], [0, 0, 0], [1, 1, 0.7]))),
+    hairBits: fuse(
+      sides.flatMap((s) => [
+        // Cejas gruesas y arqueadas.
+        place(new CapsuleGeometry(0.005, 0.03, 4, 8), [s * 0.038, 0.046, 0.092], [0, s * 0.25, Math.PI / 2 - s * 0.16]),
+        // Patillas: el pelo baja por delante de la oreja.
+        place(new SphereGeometry(0.03, 12, 10), [s * 0.088, -0.005, 0.03], [0, 0, 0], [0.5, 1.4, 0.9]),
+      ]),
+    ),
+    // La sonrisa amplia: boca abierta en media luna con los dientes de arriba.
+    lips: fuse([
+      place(new CircleGeometry(0.04, 28, Math.PI, Math.PI), [0, -0.046, 0.097], [-0.3, 0, 0], [1, 0.62, 1]),
+      place(new CapsuleGeometry(0.006, 0.062, 4, 8), [0, -0.0435, 0.097], [0, 0, Math.PI / 2], [0.55, 1.25, 0.6]),
+    ]),
+    teeth: place(new CircleGeometry(0.038, 28, Math.PI, Math.PI), [0, -0.0465, 0.0985], [-0.3, 0, 0], [0.92, 0.36, 1]),
+  };
 }
 
 /** Pernera del pantalón (torno): de la cadera al bajo, algo más estrecha abajo. */
@@ -202,6 +281,7 @@ function useGeometries() {
       lapelR: chestBand(0.2, 0.56, (y) => -vWidth(y) - lapelWidth(y), (y) => -vWidth(y), 0.006),
       trouser: trouserGeometry(),
       afro: afroGeometry(),
+      ...headGeometries(),
     };
   }, []);
   useEffect(() => () => Object.values(geos).forEach((g) => g.dispose()), [geos]);
@@ -256,50 +336,21 @@ function Arm({ side, mats, armRef, elbowRef }) {
   );
 }
 
-/** Cabeza: cara, ojos, cejas, nariz, sonrisa y afro. */
+/**
+ * Cabeza. Las piezas pequeñas de la cara se funden en una malla por material
+ * (headGeometries): así la cabeza cuesta 7 llamadas de dibujo en vez de ~25.
+ */
 function Head({ mats, geos }) {
   return (
     <group>
-      <mesh scale={[0.9, 1.12, 0.98]} material={mats.skin} castShadow>
-        <sphereGeometry args={[0.105, 32, 24]} />
-      </mesh>
-      {/* Mandíbula: un poco más estrecha que el cráneo. */}
-      <mesh position={[0, -0.055, 0.012]} scale={[0.78, 0.7, 0.85]} material={mats.skin}>
-        <sphereGeometry args={[0.1, 24, 16]} />
-      </mesh>
-      {[-1, 1].map((s) => (
-        <group key={s}>
-          <mesh position={[s * 0.096, -0.005, -0.005]} scale={[0.45, 1, 0.75]} material={mats.skin}>
-            <sphereGeometry args={[0.03, 12, 10]} />
-          </mesh>
-          <mesh position={[s * 0.037, 0.012, 0.087]} scale={[1.2, 0.8, 0.6]} material={mats.eyeWhite}>
-            <sphereGeometry args={[0.016, 12, 10]} />
-          </mesh>
-          <mesh position={[s * 0.037, 0.012, 0.097]} material={mats.iris}>
-            <sphereGeometry args={[0.0085, 10, 8]} />
-          </mesh>
-          <mesh position={[s * 0.039, 0.043, 0.094]} rotation={[0, 0, s * -0.12]} material={mats.hair}>
-            <boxGeometry args={[0.04, 0.007, 0.008]} />
-          </mesh>
-        </group>
-      ))}
-      <mesh position={[0, -0.012, 0.104]} scale={[1, 0.85, 0.8]} material={mats.skin}>
-        <sphereGeometry args={[0.019, 14, 10]} />
-      </mesh>
-      {/* La sonrisa de la portada: dientes y labios en media luna. */}
-      {/* Boca abierta en media luna: labio, dientes de arriba y labio de abajo. */}
-      <mesh position={[0, -0.043, 0.094]} rotation={[-0.28, 0, 0]} scale={[1, 0.62, 1]} material={mats.lips}>
-        <circleGeometry args={[0.034, 24, Math.PI, Math.PI]} />
-      </mesh>
-      <mesh position={[0, -0.0445, 0.0955]} rotation={[-0.28, 0, 0]} scale={[0.9, 0.3, 1]} material={mats.teeth}>
-        <circleGeometry args={[0.032, 24, Math.PI, Math.PI]} />
-      </mesh>
-      <mesh position={[0, -0.041, 0.094]} rotation={[0, 0, Math.PI / 2]} scale={[0.6, 1.2, 0.6]} material={mats.lips}>
-        <capsuleGeometry args={[0.006, 0.05, 4, 8]} />
-      </mesh>
-      <mesh geometry={geos.afro} position={[0, 0.112, -0.058]} scale={[1.06, 0.86, 0.98]} material={mats.hair} castShadow />
-      {/* Nuca: el pelo baja por detrás hasta el cuello. */}
-      <mesh geometry={geos.afro} position={[0, 0.0, -0.05]} scale={[0.66, 0.6, 0.55]} material={mats.hair} />
+      <mesh geometry={geos.headSkin} material={mats.skin} castShadow />
+      <mesh geometry={geos.eyeWhites} material={mats.eyeWhite} />
+      <mesh geometry={geos.irises} material={mats.iris} />
+      <mesh geometry={geos.hairBits} material={mats.hair} />
+      <mesh geometry={geos.lips} material={mats.lips} />
+      <mesh geometry={geos.teeth} material={mats.teeth} />
+      {/* Afro redondo que rodea la cabeza y enmarca la cara (el hueco va en la geometría). */}
+      <mesh geometry={geos.afro} position={[0, 0.045, -0.012]} scale={[1.17, 1.06, 1.08]} material={mats.hair} castShadow />
     </group>
   );
 }
@@ -430,10 +481,10 @@ export default function Michael({ move, playing, reduced, level, onStep, onHover
           <mesh position={[0, 0.6, 0.005]} material={mats.shirt}>
             <cylinderGeometry args={[0.058, 0.064, 0.05, 24, 1, true]} />
           </mesh>
-          <mesh position={[0, 0.66, 0]} material={mats.skin} castShadow>
-            <cylinderGeometry args={[0.047, 0.052, 0.14, 20]} />
+          <mesh position={[0, 0.645, 0]} material={mats.skin} castShadow>
+            <cylinderGeometry args={[0.046, 0.052, 0.11, 20]} />
           </mesh>
-          <group ref={head} position={[0, 0.79, 0.008]}>
+          <group ref={head} position={[0, 0.765, 0.008]}>
             <Head mats={mats} geos={geos} />
           </group>
           <Arm side={1} mats={mats} armRef={armL} elbowRef={elbowL} />
