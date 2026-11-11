@@ -391,3 +391,45 @@
 .otw [hidden] {
   display: none !important;
 }
+
+/* Dedicatoria al final del panel: frase de Michael y firma. */
+.otw__dedication {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--otw-line);
+}
+
+.otw__quote {
+  margin: 0;
+}
+
+.otw__quote p {
+  margin: 0;
+  font-family: 'Yellowtail', cursive;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  color: var(--otw-cream);
+}
+
+.otw__quote cite {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-style: normal;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(244 239 230 / 0.6);
+}
+
+.otw__quote-es,
+.otw__signature {
+  margin: 6px 0 0;
+  font-family: system-ui, sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgb(244 239 230 / 0.72);
+}
+
+.otw__signature strong {
+  color: var(--otw-cream);
+}

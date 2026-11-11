@@ -406,6 +406,18 @@ export default function Route() {
             </p>
           </section>
 
+          {/* Firma y dedicatoria. */}
+          <footer className="otw__dedication">
+            <blockquote className="otw__quote" lang="en">
+              <p>“In a world filled with hate, we must still dare to hope.”</p>
+              <cite>Michael Jackson</cite>
+            </blockquote>
+            <p className="otw__quote-es">En un mundo lleno de odio, aún tenemos que atrevernos a tener esperanza.</p>
+            <p className="otw__signature">
+              Hecho por <strong>Alejandro Blanco</strong>, con todo el cariño, para Michael Jackson (1958–2009).
+            </p>
+          </footer>
+
           {showBudget ? (
             <p className={verdict === false ? 'otw__budget is-over' : 'otw__budget'}>
               {budget
