@@ -433,3 +433,43 @@
 .otw__signature strong {
   color: var(--otw-cream);
 }
+
+/* Botón destacado de la coreografía. */
+.otw button.otw__star {
+  border-color: var(--otw-cream);
+  font-weight: 600;
+}
+
+/* La foto hecha, como una polaroid, con su enlace de descarga. */
+.otw__shot {
+  margin: 0 0 12px;
+  padding: 8px 8px 6px;
+  background: var(--otw-cream);
+  border-radius: 4px;
+  transform: rotate(-1.5deg);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.4);
+}
+
+.otw__shot img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.otw__shot figcaption {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.otw__shot a {
+  color: #3a1d14;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otw__shot {
+    transform: none;
+  }
+}

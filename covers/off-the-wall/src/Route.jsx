@@ -30,6 +30,8 @@ const DANCES = {
   glide: { label: 'Deslizarse', text: 'Michael se desliza hacia atrás alternando los talones y vuelve a su sitio.' },
 };
 const ORDER = /** @type {(keyof typeof MOVES)[]} */ (Object.keys(DANCES));
+/** Orden de la coreografía completa. */
+const CHOREO = /** @type {(keyof typeof MOVES)[]} */ (['spin', 'glide', 'kick', 'toe']);
 
 /** Gritos sueltos (sintetizados, no son grabaciones de su voz). */
 const SHOUTS = [
@@ -83,6 +85,10 @@ export default function Route() {
   // En el móvil el panel empieza plegado para dejar ver a Michael.
   const [panelOpen, setPanelOpen] = useState(() => !window.matchMedia('(max-width: 720px)').matches);
   const [notice, setNotice] = useState('');
+  // Última foto hecha: dirección local de la imagen (se libera al salir o al hacer otra).
+  const [shot, setShot] = useState(/** @type {string | null} */ (null));
+  const gl = useRef(/** @type {import('three').WebGLRenderer | null} */ (null));
+  const frameEl = useRef(/** @type {HTMLDivElement | null} */ (null));
   // El reproductor nace y muere con la ruta (en un efecto, no en useMemo: en
   // desarrollo React monta dos veces y un reproductor ya liberado no sonaría).
   const music = useRef(/** @type {ReturnType<typeof createPlayer> | null} */ (null));
@@ -125,6 +131,10 @@ export default function Route() {
   useEffect(() => {
     document.body.style.cursor = hovered ? 'pointer' : 'auto';
   }, [hovered]);
+
+  useEffect(() => () => {
+    if (shot) URL.revokeObjectURL(shot);
+  }, [shot]);
 
   const later = (fn, ms) => {
     timers.current.push(window.setTimeout(fn, ms));
@@ -205,14 +215,66 @@ export default function Route() {
     return () => window.clearInterval(id);
   }, [playing, reduced, dance]);
 
+  // Coreografía: los cuatro pasos seguidos, con sus gritos.
+  const choreography = () => {
+    let t = 0;
+    for (const name of CHOREO) {
+      later(() => dance(name), t);
+      t += (MOVES[name] + 0.15) * 1000;
+    }
+    later(() => setNotice('¡Coreografía completa! Vuelta, deslizarse, patada y de puntillas.'), t);
+  };
+
+  /**
+   * Guarda lo que se ve dentro del encuadre como una portada cuadrada, con el
+   * nombre y el título encima, igual que en un disco.
+   */
+  const capture = async () => {
+    const src = gl.current?.domElement;
+    const frame = frameEl.current;
+    if (!src || !frame) return;
+    const box = src.getBoundingClientRect();
+    const fr = frame.getBoundingClientRect();
+    const k = src.width / box.width;
+    const side = 1200;
+    const out = document.createElement('canvas');
+    out.width = side;
+    out.height = side;
+    const c = out.getContext('2d');
+    c.drawImage(src, (fr.left - box.left) * k, (fr.top - box.top) * k, fr.width * k, fr.height * k, 0, 0, side, side);
+    try {
+      await Promise.all([document.fonts.load(`${side * 0.07}px Yellowtail`), document.fonts.load(`600 ${side * 0.045}px Oswald`)]);
+    } catch {
+      // Sin las fuentes se usa la del sistema: la foto sale igual.
+    }
+    const pad = side * 0.045;
+    c.fillStyle = '#f7e9cf';
+    c.shadowColor = 'rgb(0 0 0 / 0.45)';
+    c.shadowBlur = side * 0.012;
+    c.font = `${side * 0.07}px Yellowtail, cursive`;
+    c.fillText('Michael Jackson', pad, pad + side * 0.07);
+    c.font = `600 ${side * 0.045}px Oswald, sans-serif`;
+    c.letterSpacing = `${side * 0.008}px`;
+    c.fillText('OFF THE WALL', pad, pad + side * 0.135);
+    c.letterSpacing = '0px';
+    c.font = `${side * 0.016}px Oswald, sans-serif`;
+    c.globalAlpha = 0.7;
+    c.textAlign = 'right';
+    c.fillText('Hecho por Alejandro Blanco', side - pad, side - pad * 0.6);
+    out.toBlob((blob) => {
+      if (blob) setShot(URL.createObjectURL(blob));
+    }, 'image/png');
+  };
+
   const takePhoto = () => {
     goTo('cover');
     // Primero llega la cámara al encuadre de la portada; después, el destello.
     later(
       () => {
+        capture();
         setFlashAt(performance.now() / 1000);
         setFlashing(true);
-        setNotice('Foto hecha: así se ve la portada desde la cámara del plató.');
+        setNotice('Foto hecha: así se ve la portada desde la cámara del plató. Ya puedes descargarla.');
         later(() => setFlashing(false), 700);
       },
       reduced ? 0 : 1500,
@@ -241,6 +303,28 @@ export default function Route() {
     else playTrack(0);
   };
 
+  // Atajos de teclado: 1-4 bailes, C coreografía, F foto, M música.
+  // Se leen desde una ref para usar siempre las funciones del último render.
+  const keys = useRef({});
+  useEffect(() => {
+    keys.current = { dance, choreography, takePhoto, toggleAlbum };
+  });
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = /** @type {HTMLElement} */ (e.target).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      const k = keys.current;
+      const n = Number(e.key);
+      if (n >= 1 && n <= ORDER.length) k.dance(ORDER[n - 1]);
+      else if (e.key === 'c' || e.key === 'C') k.choreography();
+      else if (e.key === 'f' || e.key === 'F') k.takePhoto();
+      else if (e.key === 'm' || e.key === 'M') k.toggleAlbum();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const verdict = withinCeiling(budget, CEILING);
   const showBudget = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('budget');
   const initial = useMemo(() => coverPosition(window.innerWidth, window.innerHeight), []);
@@ -251,7 +335,10 @@ export default function Route() {
         className="otw__canvas"
         shadows="percentage"
         dpr={DPR}
-        gl={{ toneMappingExposure: 1.08 }}
+        gl={{ toneMappingExposure: 1.08, preserveDrawingBuffer: true }}
+        onCreated={(state) => {
+          gl.current = state.gl;
+        }}
         camera={{ position: initial, fov: FOV, near: 0.05, far: 40 }}
         aria-label="Escena 3D: Michael Jackson delante de una pared de ladrillo, en un plató de fotos"
       >
@@ -272,7 +359,7 @@ export default function Route() {
       </Canvas>
 
       {/* Encuadre cuadrado de la portada: aparece cuando se mira de frente. */}
-      <div className="otw__frame" aria-hidden="true">
+      <div ref={frameEl} className="otw__frame" aria-hidden="true">
         <span className="otw__frame-artist">Michael Jackson</span>
         <span className="otw__frame-title">Off the Wall</span>
       </div>
@@ -308,11 +395,14 @@ export default function Route() {
 
           <fieldset className="otw__group">
             <legend>Bailar</legend>
-            {ORDER.map((name) => (
-              <button key={name} type="button" onClick={() => dance(name)}>
+            {ORDER.map((name, i) => (
+              <button key={name} type="button" aria-keyshortcuts={String(i + 1)} onClick={() => dance(name)}>
                 {DANCES[name].label}
               </button>
             ))}
+            <button type="button" className="otw__star" aria-keyshortcuts="C" onClick={choreography}>
+              Coreografía completa
+            </button>
           </fieldset>
 
           <fieldset className="otw__group">
@@ -326,13 +416,24 @@ export default function Route() {
 
           <fieldset className="otw__group">
             <legend>Hacer</legend>
-            <button type="button" onClick={takePhoto}>
+            <button type="button" aria-keyshortcuts="F" onClick={takePhoto}>
               Hacer la foto
             </button>
-            <button type="button" aria-pressed={playing} onClick={toggleAlbum}>
+            <button type="button" aria-keyshortcuts="M" aria-pressed={playing} onClick={toggleAlbum}>
               {playing ? 'Parar la música' : 'Escuchar el disco'}
             </button>
           </fieldset>
+
+          {shot ? (
+            <figure className="otw__shot">
+              <img src={shot} alt="Tu foto de la portada: Michael delante de la pared de ladrillo, con el título del disco" />
+              <figcaption>
+                <a href={shot} download="off-the-wall-mi-portada.png">
+                  Descargar tu portada
+                </a>
+              </figcaption>
+            </figure>
+          ) : null}
 
           <p className="otw__caption" aria-live="polite">
             {CAPTIONS[zone]}
@@ -344,7 +445,8 @@ export default function Route() {
             Ratón o dedo: girar · rueda o pellizco: acercar · <kbd>W</kbd>
             <kbd>A</kbd>
             <kbd>S</kbd>
-            <kbd>D</kbd> o flechas: caminar · clic en Michael: baila
+            <kbd>D</kbd> o flechas: caminar · clic en Michael: baila · <kbd>1</kbd>–<kbd>4</kbd> bailes ·{' '}
+            <kbd>C</kbd> coreografía · <kbd>F</kbd> foto · <kbd>M</kbd> música
           </p>
 
           <section className="otw__tracks" aria-label="Canciones del disco">
