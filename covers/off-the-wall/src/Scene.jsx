@@ -15,15 +15,15 @@ const BACKGROUND = '#120c0a';
  *   view: { name: string, at: number } | null,
  *   stepAt: number | null,
  *   flashAt: number | null,
- *   groove: boolean,
- *   beat: () => number,
+ *   playing: boolean,
+ *   level: () => number,
  *   reduced: boolean,
  *   onZone: (zone: string) => void,
  *   onStep: () => void,
  *   onHover: (on: boolean) => void,
  * }} props
  */
-export default function Scene({ view, stepAt, flashAt, groove, beat, reduced, onZone, onStep, onHover }) {
+export default function Scene({ view, stepAt, flashAt, playing, level, reduced, onZone, onStep, onHover }) {
   return (
     <>
       <color attach="background" args={[BACKGROUND]} />
@@ -69,7 +69,7 @@ export default function Scene({ view, stepAt, flashAt, groove, beat, reduced, on
       </mesh>
 
       <BrickWall />
-      <Michael stepAt={stepAt} groove={groove} reduced={reduced} beat={beat} onStep={onStep} onHover={onHover} />
+      <Michael stepAt={stepAt} playing={playing} reduced={reduced} level={level} onStep={onStep} onHover={onHover} />
       <Studio flash={flashAt} />
       <CameraRig view={view} reduced={reduced} onZone={onZone} />
     </>

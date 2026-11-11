@@ -10,7 +10,7 @@ import BudgetProbe from '../../../src/lib/BudgetProbe.jsx';
 import { withinCeiling } from '../../../src/lib/budget.js';
 import usePrefersReducedMotion from '../../../src/lib/usePrefersReducedMotion.js';
 import { CEILING } from './budget.js';
-import { createGroove } from './groove.js';
+import { ALBUM_URL, createPlayer } from './player.js';
 import Scene from './Scene.jsx';
 import { FOV, VIEWS, coverPosition } from './set.js';
 import './route.css';
@@ -48,13 +48,17 @@ export default function Route() {
   const [stepAt, setStepAt] = useState(/** @type {number | null} */ (null));
   const [flashAt, setFlashAt] = useState(/** @type {number | null} */ (null));
   const [flashing, setFlashing] = useState(false);
-  const [groove, setGroove] = useState(false);
+  const [track, setTrack] = useState(-1);
+  const [progress, setProgress] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [budget, setBudget] = useState(null);
   // En el móvil el panel empieza plegado para dejar ver a Michael.
   const [panelOpen, setPanelOpen] = useState(() => !window.matchMedia('(max-width: 720px)').matches);
   const [notice, setNotice] = useState('');
-  const music = useMemo(() => createGroove(), []);
+  // El reproductor nace y muere con la ruta (en un efecto, no en useMemo: en
+  // desarrollo React monta dos veces y un reproductor ya liberado no sonaría).
+  const music = useRef(/** @type {ReturnType<typeof createPlayer> | null} */ (null));
+  const level = useCallback(() => music.current?.level() ?? 0, []);
   const timers = useRef(/** @type {number[]} */ ([]));
 
   // Clase de ámbito, fuentes y limpieza completa al salir de la ruta.
@@ -65,14 +69,21 @@ export default function Route() {
     link.href = FONTS;
     document.head.appendChild(link);
     const pending = timers.current;
+    const player = createPlayer({
+      onChange: setTrack,
+      // El progreso solo mueve la barra; timeupdate llega unas 4 veces por segundo.
+      onProgress: (_, t) => setProgress(t),
+    });
+    music.current = player;
     return () => {
       document.documentElement.classList.remove(SCOPE);
       link.remove();
       pending.forEach((id) => window.clearTimeout(id));
-      music.stop();
+      player.dispose();
+      music.current = null;
       document.body.style.cursor = 'auto';
     };
-  }, [music]);
+  }, []);
 
   useEffect(() => {
     document.body.style.cursor = hovered ? 'pointer' : 'auto';
@@ -104,17 +115,18 @@ export default function Route() {
     );
   };
 
-  const toggleGroove = async () => {
-    if (groove) {
-      music.stop();
-      setGroove(false);
-      setNotice('Groove apagado.');
-    } else {
-      await music.start();
-      setGroove(true);
-      setNotice('Suena un groove disco hecho en el navegador. Michael lleva el ritmo.');
+  const playTrack = async (i) => {
+    if (!music.current) return;
+    if (track === i) {
+      music.current.stop();
+      setNotice('Música parada.');
+      return;
     }
+    const ok = await music.current.play(i);
+    setNotice(ok ? `Suena «${TRACKS[i]}» (fragmento de 30 s). Michael lleva el ritmo.` : 'No se ha podido cargar el fragmento. ¿Hay conexión?');
   };
+
+  const toggleAlbum = () => (track >= 0 ? playTrack(track) : playTrack(0));
 
   const verdict = withinCeiling(budget, CEILING);
   const showBudget = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('budget');
@@ -126,6 +138,7 @@ export default function Route() {
         className="otw__canvas"
         shadows="percentage"
         dpr={DPR}
+        gl={{ toneMappingExposure: 1.08 }}
         camera={{ position: initial, fov: FOV, near: 0.05, far: 40 }}
         aria-label="Escena 3D: Michael Jackson delante de una pared de ladrillo, en un plató de fotos"
       >
@@ -134,8 +147,8 @@ export default function Route() {
             view={view}
             stepAt={stepAt}
             flashAt={flashAt}
-            groove={groove}
-            beat={music.beat}
+            playing={track >= 0}
+            level={level}
             reduced={reduced}
             onZone={setZone}
             onStep={step}
@@ -150,6 +163,8 @@ export default function Route() {
         <span className="otw__frame-artist">Michael Jackson</span>
         <span className="otw__frame-title">Off the Wall</span>
       </div>
+      <div className="otw__vignette" aria-hidden="true" />
+      <div className="otw__grain" aria-hidden="true" />
       <div className={`otw__flash ${flashing ? 'is-on' : ''}`} aria-hidden="true" />
 
       <aside className={`otw__panel ${panelOpen ? '' : 'is-closed'}`} aria-label="Controles de la portada">
@@ -186,8 +201,8 @@ export default function Route() {
             <button type="button" onClick={takePhoto}>
               Hacer la foto
             </button>
-            <button type="button" aria-pressed={groove} onClick={toggleGroove}>
-              {groove ? 'Parar el groove' : 'Poner el groove'}
+            <button type="button" aria-pressed={track >= 0} onClick={toggleAlbum}>
+              {track >= 0 ? 'Parar la música' : 'Escuchar el disco'}
             </button>
           </fieldset>
 
@@ -204,14 +219,33 @@ export default function Route() {
             <kbd>D</kbd> o flechas: caminar · clic en Michael: un paso
           </p>
 
-          <details className="otw__tracks">
-            <summary>Canciones del disco</summary>
+          <section className="otw__tracks" aria-label="Canciones del disco">
+            <h2>Cara A y cara B</h2>
             <ol>
-              {TRACKS.map((t) => (
-                <li key={t}>{t}</li>
+              {TRACKS.map((t, i) => (
+                <li key={t}>
+                  <button
+                    type="button"
+                    className="otw__track"
+                    aria-pressed={track === i}
+                    onClick={() => playTrack(i)}
+                  >
+                    <span className="otw__track-n">{i + 1}</span>
+                    <span className="otw__track-name">{t}</span>
+                    {track === i ? (
+                      <span className="otw__track-bar" style={{ '--p': progress }} aria-hidden="true" />
+                    ) : null}
+                  </button>
+                </li>
               ))}
             </ol>
-          </details>
+            <p className="otw__credit">
+              Fragmentos de 30 s servidos por Apple Music.{' '}
+              <a href={ALBUM_URL} target="_blank" rel="noreferrer">
+                Escuchar el disco entero
+              </a>
+            </p>
+          </section>
 
           {showBudget ? (
             <p className={verdict === false ? 'otw__budget is-over' : 'otw__budget'}>

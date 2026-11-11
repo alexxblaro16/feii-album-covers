@@ -211,14 +211,95 @@
   font-size: 0.85rem;
 }
 
-.otw__tracks summary {
-  cursor: pointer;
+.otw__tracks h2 {
+  margin: 4px 0 6px;
+  font-family: 'Oswald', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(244 239 230 / 0.6);
 }
 
 .otw__tracks ol {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cada canción es un botón a lo ancho, como una pista del disco. */
+.otw button.otw__track {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 30px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+  font-family: system-ui, sans-serif;
+  font-size: 0.86rem;
+  overflow: hidden;
+}
+
+.otw button.otw__track:hover {
+  border-color: var(--otw-line);
+}
+
+.otw__track-n {
+  min-width: 1.3em;
+  color: rgb(244 239 230 / 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.otw__track-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: calc(var(--p, 0) * 100%);
+  background: var(--otw-cream);
+}
+
+.otw__credit {
   margin: 8px 0 0;
-  padding-left: 1.4em;
-  line-height: 1.6;
+  font-size: 0.75rem;
+  color: rgb(244 239 230 / 0.6);
+}
+
+.otw__credit a {
+  color: var(--otw-cream);
+}
+
+/* Grano de película y viñeta: la escena se ve como una foto de 1979. */
+.otw__grain {
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 1.1 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: otw-grain 0.9s steps(6) infinite;
+}
+
+.otw__vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgb(12 6 4 / 0.55) 100%);
+}
+
+@keyframes otw-grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-6%, 4%); }
+  40% { transform: translate(5%, -7%); }
+  60% { transform: translate(-3%, 8%); }
+  80% { transform: translate(7%, 2%); }
+  100% { transform: translate(0, 0); }
 }
 
 .otw__budget {
@@ -286,6 +367,10 @@
   }
 
   .otw__flash.is-on {
+    animation: none;
+  }
+
+  .otw__grain {
     animation: none;
   }
 }

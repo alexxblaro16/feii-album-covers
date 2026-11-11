@@ -5,7 +5,7 @@
 //
 // Animación (en useFrame, sin estado de React por fotograma):
 //  - en reposo respira y balancea un poco el peso;
-//  - con el groove encendido sigue el pulso;
+//  - cuando suena una canción del disco sigue los graves;
 //  - "Hacer un paso": se pone de puntillas, sube un brazo y gira la cabeza.
 // Con prefers-reduced-motion no hay movimiento: el paso se muestra quieto.
 
@@ -229,12 +229,22 @@ function Arm({ side, mats, armRef, elbowRef }) {
         <mesh position={[0, -0.255, 0]} material={mats.shirt} castShadow>
           <cylinderGeometry args={[0.049, 0.047, 0.035, 20]} />
         </mesh>
-        {/* Mano: palma algo aplanada y el pulgar hacia delante. */}
-        <mesh position={[0, -0.33, 0.005]} scale={[0.75, 1.15, 0.55]} material={mats.skin} castShadow>
-          <sphereGeometry args={[0.055, 20, 16]} />
+        {/* Mano: palma, cuatro dedos algo doblados hacia dentro y el pulgar delante. */}
+        <mesh position={[0, -0.315, 0.004]} scale={[0.72, 0.95, 0.42]} material={mats.skin} castShadow>
+          <sphereGeometry args={[0.05, 20, 16]} />
         </mesh>
-        <mesh position={[-side * 0.002, -0.32, 0.035]} rotation={[0.5, 0, side * 0.4]} material={mats.skin}>
-          <capsuleGeometry args={[0.013, 0.035, 4, 8]} />
+        {[-0.021, -0.007, 0.007, 0.02].map((x, i) => (
+          <mesh
+            key={x}
+            position={[x * side, -0.372 + Math.abs(i - 1.5) * 0.004, 0.012]}
+            rotation={[0.35, 0, 0]}
+            material={mats.skin}
+          >
+            <capsuleGeometry args={[0.0085, 0.042 - Math.abs(i - 1.5) * 0.006, 4, 8]} />
+          </mesh>
+        ))}
+        <mesh position={[-side * 0.022, -0.315, 0.028]} rotation={[0.5, 0, side * 0.5]} material={mats.skin}>
+          <capsuleGeometry args={[0.01, 0.03, 4, 8]} />
         </mesh>
       </group>
     </group>
@@ -311,14 +321,14 @@ function Leg({ side, mats, geos, shoeRef }) {
 /**
  * @param {{
  *   stepAt: number | null,
- *   groove: boolean,
+ *   playing: boolean,
  *   reduced: boolean,
- *   beat: () => number,
+ *   level: () => number,
  *   onStep: () => void,
  *   onHover: (on: boolean) => void,
  * }} props
  */
-export default function Michael({ stepAt, groove, reduced, beat, onStep, onHover }) {
+export default function Michael({ stepAt, playing, reduced, level, onStep, onHover }) {
   const mats = useMaterials();
   const geos = useGeometries();
   const body = useRef(null);
@@ -330,6 +340,7 @@ export default function Michael({ stepAt, groove, reduced, beat, onStep, onHover
   const elbowR = useRef(null);
   const shoeL = useRef(null);
   const shoeR = useRef(null);
+  const beat = useRef(0);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
@@ -340,10 +351,12 @@ export default function Michael({ stepAt, groove, reduced, beat, onStep, onHover
       if (k >= 0 && k <= 1) step = reduced ? 1 : Math.sin(k * Math.PI);
     }
     const idle = reduced ? 0 : 1;
-    // Pulso del groove: 0 en el golpe, 1 a medio compás.
-    const pulse = groove && !reduced ? Math.abs(Math.sin(beat() * Math.PI)) : 0;
+    // Pulso de la música: energía de los graves (bombo y bajo), suavizada.
+    const target = playing && !reduced ? level() : 0;
+    beat.current += (target - beat.current) * 0.35;
+    const pulse = beat.current;
 
-    body.current.position.y = step * 0.085 + pulse * 0.018 + Math.sin(t * 1.6) * 0.002 * idle;
+    body.current.position.y = step * 0.085 + pulse * 0.035 + Math.sin(t * 1.6) * 0.002 * idle;
     torso.current.rotation.z = Math.sin(t * 0.7) * 0.012 * idle + step * 0.06;
     torso.current.scale.y = 1 + Math.sin(t * 1.6) * 0.004 * idle;
     head.current.rotation.y = step * 0.45 + Math.sin(t * 0.5) * 0.05 * idle;

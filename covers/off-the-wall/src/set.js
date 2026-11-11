@@ -2,7 +2,7 @@
 // Un solo sitio para los números que comparten la escena, la cámara y el DOM.
 
 /** Pared de ladrillo del fondo: su cara delantera está en z = WALL.z. */
-export const WALL = { width: 6.4, height: 3.6, z: -1.9 };
+export const WALL = { width: 6.4, height: 4.2, z: -1.9 };
 
 /** Hasta dónde se puede caminar (no se atraviesa la pared ni se sale del plató). */
 export const BOUNDS = { minX: -2.9, maxX: 2.9, minZ: WALL.z + 0.28, maxZ: 10.5, minY: 0.25, maxY: 3.2 };
@@ -21,8 +21,6 @@ export const VIEWS = {
   set: { label: 'El plató', position: [-3.3, 2.9, 6.9], target: [0.2, 0.8, 0.9] },
 };
 
-/** Ritmo del groove sintetizado (pulsos por minuto). */
-export const BPM = 118;
 
 /** Campo de visión vertical de la cámara (grados). */
 export const FOV = 32;
