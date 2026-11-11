@@ -6,8 +6,10 @@
 // Animación (en useFrame, sin estado de React por fotograma):
 //  - en reposo respira y balancea un poco el peso;
 //  - cuando suena una canción del disco sigue los graves;
-//  - "Hacer un paso": se pone de puntillas, sube un brazo y gira la cabeza.
-// Con prefers-reduced-motion no hay movimiento: el paso se muestra quieto.
+//  - cuatro pasos de baile (POSES): la vuelta de dos giros que acaba de
+//    puntillas, las puntillas con el brazo arriba, la patada y deslizarse
+//    hacia atrás alternando los talones.
+// Con prefers-reduced-motion no hay movimiento: se enseña el paso quieto.
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -23,14 +25,17 @@ import {
   MeshStandardMaterial,
   Vector2,
 } from 'three';
+import { movePose } from './dances.js';
 import { MICHAEL } from './set.js';
 
 // Aplastamiento del torso de delante a atrás (un cuerpo no es un cilindro).
 const FLAT = 0.62;
 // Altura de la cadera: el resto del cuerpo cuelga de aquí.
 const HIP_Y = 0.92;
-// Duración del paso de baile, en segundos.
-const STEP_TIME = 1.6;
+// Postura de reposo (propia, no calcada de la foto): peso cargado en la
+// pierna izquierda, cadera y hombros compensados, cabeza ladeada hacia la
+// cámara con la sonrisa, y codos algo doblados, relajado y seguro.
+const REST = { hip: 0.035, shoulders: -0.05, headTilt: 0.07, headTurn: 0.08, elbow: -0.38, legOut: 0.045 };
 
 // Perfil de la chaqueta: [radio, altura] desde el bajo hasta el cuello.
 const JACKET = [
@@ -299,20 +304,25 @@ function Head({ mats, geos }) {
   );
 }
 
-/** Pierna: pernera, calcetín blanco y mocasín (que gira desde la punta). */
-function Leg({ side, mats, geos, shoeRef }) {
+/**
+ * Pierna: pernera, calcetín blanco y mocasín (que gira desde la punta).
+ * Toda la pierna cuelga de un pivote en la cadera, para poder dar la patada.
+ */
+function Leg({ side, mats, geos, shoeRef, legRef }) {
   return (
-    <group position={[side * 0.098, 0, 0]}>
-      <mesh geometry={geos.trouser} position={[0, HIP_Y, 0]} material={mats.wool} castShadow />
-      <mesh position={[0, 0.115, 0]} material={mats.sock} castShadow>
-        <cylinderGeometry args={[0.047, 0.044, 0.11, 20]} />
-      </mesh>
-      {/* Pivote en la punta del pie: al ponerse de puntillas se levanta el talón. */}
-      <group ref={shoeRef} position={[side * 0.012, 0, 0.17]}>
-        {/* Mocasín: cápsula tumbada a lo largo del pie y aplastada. */}
-        <mesh position={[0, 0.034, -0.12]} rotation={[Math.PI / 2, 0, 0]} scale={[1.05, 1, 0.66]} material={mats.leather} castShadow>
-          <capsuleGeometry args={[0.047, 0.17, 6, 18]} />
+    <group ref={legRef} position={[side * 0.098, HIP_Y, 0]}>
+      <group position={[0, -HIP_Y, 0]}>
+        <mesh geometry={geos.trouser} position={[0, HIP_Y, 0]} material={mats.wool} castShadow />
+        <mesh position={[0, 0.115, 0]} material={mats.sock} castShadow>
+          <cylinderGeometry args={[0.047, 0.044, 0.11, 20]} />
         </mesh>
+        {/* Pivote en la punta del pie: al ponerse de puntillas se levanta el talón. */}
+        <group ref={shoeRef} position={[side * 0.012, 0, 0.17]}>
+          {/* Mocasín: cápsula tumbada a lo largo del pie y aplastada. */}
+          <mesh position={[0, 0.034, -0.12]} rotation={[Math.PI / 2, 0, 0]} scale={[1.05, 1, 0.66]} material={mats.leather} castShadow>
+            <capsuleGeometry args={[0.047, 0.17, 6, 18]} />
+          </mesh>
+        </group>
       </group>
     </group>
   );
@@ -320,7 +330,7 @@ function Leg({ side, mats, geos, shoeRef }) {
 
 /**
  * @param {{
- *   stepAt: number | null,
+ *   move: { name: string, at: number } | null,
  *   playing: boolean,
  *   reduced: boolean,
  *   level: () => number,
@@ -328,7 +338,7 @@ function Leg({ side, mats, geos, shoeRef }) {
  *   onHover: (on: boolean) => void,
  * }} props
  */
-export default function Michael({ stepAt, playing, reduced, level, onStep, onHover }) {
+export default function Michael({ move, playing, reduced, level, onStep, onHover }) {
   const mats = useMaterials();
   const geos = useGeometries();
   const body = useRef(null);
@@ -340,38 +350,44 @@ export default function Michael({ stepAt, playing, reduced, level, onStep, onHov
   const elbowR = useRef(null);
   const shoeL = useRef(null);
   const shoeR = useRef(null);
+  const legL = useRef(null);
+  const legR = useRef(null);
   const beat = useRef(0);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    // Intensidad del paso: sube y baja en forma de campana durante STEP_TIME.
-    let step = 0;
-    if (stepAt !== null) {
-      const k = (performance.now() / 1000 - stepAt) / STEP_TIME;
-      if (k >= 0 && k <= 1) step = reduced ? 1 : Math.sin(k * Math.PI);
-    }
+    const p = movePose(move, reduced);
     const idle = reduced ? 0 : 1;
     // Pulso de la música: energía de los graves (bombo y bajo), suavizada.
     const target = playing && !reduced ? level() : 0;
     beat.current += (target - beat.current) * 0.35;
     const pulse = beat.current;
 
-    body.current.position.y = step * 0.085 + pulse * 0.035 + Math.sin(t * 1.6) * 0.002 * idle;
-    torso.current.rotation.z = Math.sin(t * 0.7) * 0.012 * idle + step * 0.06;
+    body.current.position.y = p.lift + pulse * 0.035 + Math.sin(t * 1.6) * 0.002 * idle;
+    body.current.position.z = p.back;
+    body.current.rotation.y = p.turn;
+    torso.current.rotation.z = REST.shoulders + Math.sin(t * 0.7) * 0.012 * idle + p.tilt;
+    torso.current.rotation.x = p.lean;
     torso.current.scale.y = 1 + Math.sin(t * 1.6) * 0.004 * idle;
-    head.current.rotation.y = step * 0.45 + Math.sin(t * 0.5) * 0.05 * idle;
-    head.current.rotation.x = -pulse * 0.08 - step * 0.12;
+    head.current.rotation.y = REST.headTurn + p.headY + Math.sin(t * 0.5) * 0.05 * idle;
+    head.current.rotation.z = REST.headTilt;
+    head.current.rotation.x = -pulse * 0.08 + p.headX;
 
-    // Brazos en reposo un poco separados; en el paso, el derecho apunta arriba.
-    armR.current.rotation.z = -0.1 - step * 2.35 - pulse * 0.08;
-    armR.current.rotation.x = -0.05 - step * 0.2;
-    elbowR.current.rotation.x = -0.18 + step * 0.1;
-    armL.current.rotation.z = 0.1 + step * 0.25 + pulse * 0.08;
-    armL.current.rotation.x = -0.05;
-    elbowL.current.rotation.x = -0.22 - step * 0.6;
+    // Brazos en reposo un poco separados; cada paso los mueve a su manera.
+    armR.current.rotation.z = -0.1 + p.armRZ - pulse * 0.08;
+    armR.current.rotation.x = -0.05 + p.armRX;
+    elbowR.current.rotation.x = REST.elbow + p.elbowR;
+    armL.current.rotation.z = 0.1 + p.armLZ + pulse * 0.08;
+    armL.current.rotation.x = -0.05 + p.armLX;
+    elbowL.current.rotation.x = REST.elbow - 0.06 + p.elbowL;
 
-    shoeL.current.rotation.x = step * 0.55;
-    shoeR.current.rotation.x = step * 0.55;
+    legR.current.rotation.x = p.legR;
+    // La pierna libre, algo abierta; el cuerpo se inclina sobre la que carga.
+    legR.current.rotation.z = -REST.legOut;
+    body.current.rotation.z = REST.hip;
+    legL.current.rotation.x = p.legL;
+    shoeL.current.rotation.x = p.toeL;
+    shoeR.current.rotation.x = p.toeR;
   });
 
   return (
@@ -388,8 +404,8 @@ export default function Michael({ stepAt, playing, reduced, level, onStep, onHov
       onPointerOut={() => onHover(false)}
     >
       <group ref={body}>
-        <Leg side={-1} mats={mats} geos={geos} shoeRef={shoeR} />
-        <Leg side={1} mats={mats} geos={geos} shoeRef={shoeL} />
+        <Leg side={-1} mats={mats} geos={geos} shoeRef={shoeR} legRef={legR} />
+        <Leg side={1} mats={mats} geos={geos} shoeRef={shoeL} legRef={legL} />
         <group ref={torso} position={[0, HIP_Y, 0]}>
           <mesh geometry={geos.jacket} scale={[1, 1, FLAT]} material={mats.wool} castShadow receiveShadow />
           <mesh geometry={geos.shirtV} material={mats.shirt} />

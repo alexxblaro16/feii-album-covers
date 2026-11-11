@@ -374,3 +374,20 @@
     animation: none;
   }
 }
+
+/* Selector de origen de la música y reproductor de Spotify. */
+.otw__source {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.otw__spotify iframe {
+  display: block;
+  border: 0;
+  border-radius: 12px;
+}
+
+.otw [hidden] {
+  display: none !important;
+}

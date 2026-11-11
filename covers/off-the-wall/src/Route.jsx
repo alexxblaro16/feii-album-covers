@@ -10,7 +10,10 @@ import BudgetProbe from '../../../src/lib/BudgetProbe.jsx';
 import { withinCeiling } from '../../../src/lib/budget.js';
 import usePrefersReducedMotion from '../../../src/lib/usePrefersReducedMotion.js';
 import { CEILING } from './budget.js';
+import { MOVES } from './dances.js';
 import { ALBUM_URL, createPlayer } from './player.js';
+import { SPOTIFY_URL, createSpotify } from './spotify.js';
+import { createVoice } from './voice.js';
 import Scene from './Scene.jsx';
 import { FOV, VIEWS, coverPosition } from './set.js';
 import './route.css';
@@ -18,6 +21,26 @@ import './route.css';
 const SCOPE = 'route-off-the-wall';
 const FONTS = 'https://fonts.googleapis.com/css2?family=Yellowtail&family=Oswald:wght@400;600&display=swap';
 const DPR = [1, 1.5];
+
+/** Los pasos de baile: nombre del botón y lo que se cuenta. */
+const DANCES = {
+  spin: { label: 'La vuelta', text: 'Michael gira dos veces sobre un pie y acaba de puntillas. ¡Uuh!' },
+  toe: { label: 'De puntillas', text: 'Michael se pone de puntillas y sube el brazo. ¡Ji-ji!' },
+  kick: { label: 'Patada', text: 'Patada al frente, seca, con los brazos abiertos. ¡Au!' },
+  glide: { label: 'Deslizarse', text: 'Michael se desliza hacia atrás alternando los talones y vuelve a su sitio.' },
+};
+const ORDER = /** @type {(keyof typeof MOVES)[]} */ (Object.keys(DANCES));
+
+/** Gritos sueltos (sintetizados, no son grabaciones de su voz). */
+const SHOUTS = [
+  ['hee', '¡Ji-ji!'],
+  ['ow', '¡Au!'],
+  ['whoo', '¡Uuh!'],
+  ['snap', 'Chasquido'],
+];
+
+// Altura del reproductor de Spotify con la lista de canciones.
+const SPOTIFY_HEIGHT = 352;
 
 const TRACKS = [
   "Don't Stop 'Til You Get Enough",
@@ -45,7 +68,11 @@ export default function Route() {
   const reduced = usePrefersReducedMotion();
   const [view, setView] = useState(/** @type {{ name: string, at: number } | null} */ (null));
   const [zone, setZone] = useState('cover');
-  const [stepAt, setStepAt] = useState(/** @type {number | null} */ (null));
+  const [move, setMove] = useState(/** @type {{ name: keyof typeof MOVES, at: number } | null} */ (null));
+  // De dónde sale la música: Spotify (por defecto) o los fragmentos de Apple.
+  const [source, setSource] = useState(/** @type {'spotify' | 'apple'} */ ('spotify'));
+  const [spotifyOn, setSpotifyOn] = useState(false);
+  const [spotifyState, setSpotifyState] = useState(/** @type {'loading' | 'ready' | 'error'} */ ('loading'));
   const [flashAt, setFlashAt] = useState(/** @type {number | null} */ (null));
   const [flashing, setFlashing] = useState(false);
   const [track, setTrack] = useState(-1);
@@ -58,8 +85,13 @@ export default function Route() {
   // El reproductor nace y muere con la ruta (en un efecto, no en useMemo: en
   // desarrollo React monta dos veces y un reproductor ya liberado no sonaría).
   const music = useRef(/** @type {ReturnType<typeof createPlayer> | null} */ (null));
-  const level = useCallback(() => music.current?.level() ?? 0, []);
+  const spotify = useRef(/** @type {Awaited<ReturnType<typeof createSpotify>> | null} */ (null));
+  const spotifyHost = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const voice = useRef(/** @type {ReturnType<typeof createVoice> | null} */ (null));
+  // El pulso sale del sonido real (Apple) o del tempo enganchado a Spotify.
+  const level = useCallback(() => Math.max(music.current?.level() ?? 0, spotify.current?.level() ?? 0), []);
   const timers = useRef(/** @type {number[]} */ ([]));
+  const nextMove = useRef(0);
 
   // Clase de ámbito, fuentes y limpieza completa al salir de la ruta.
   useEffect(() => {
@@ -75,12 +107,16 @@ export default function Route() {
       onProgress: (_, t) => setProgress(t),
     });
     music.current = player;
+    const shouts = createVoice();
+    voice.current = shouts;
     return () => {
       document.documentElement.classList.remove(SCOPE);
       link.remove();
       pending.forEach((id) => window.clearTimeout(id));
       player.dispose();
       music.current = null;
+      shouts.dispose();
+      voice.current = null;
       document.body.style.cursor = 'auto';
     };
   }, []);
@@ -96,10 +132,76 @@ export default function Route() {
   // `at` cuenta las peticiones: repetir la misma vista vuelve a llevar la cámara.
   const goTo = (name) => setView((v) => ({ name, at: (v?.at ?? 0) + 1 }));
 
-  const step = useCallback(() => {
-    setStepAt(performance.now() / 1000);
-    setNotice('Michael se pone de puntillas y saluda.');
+  // Reproductor de Spotify: se monta al entrar y se destruye al salir.
+  useEffect(() => {
+    let alive = true;
+    let sp = null;
+    createSpotify(spotifyHost.current, { onPlaying: setSpotifyOn, height: SPOTIFY_HEIGHT })
+      .then((c) => {
+        if (!alive) {
+          c.dispose();
+          return;
+        }
+        sp = c;
+        spotify.current = c;
+        setSpotifyState('ready');
+      })
+      .catch(() => {
+        if (alive) setSpotifyState('error');
+      });
+    return () => {
+      alive = false;
+      sp?.dispose();
+      spotify.current = null;
+    };
   }, []);
+
+  // Si Spotify empieza a sonar, se callan los fragmentos de Apple.
+  useEffect(() => {
+    if (spotifyOn) music.current?.stop();
+  }, [spotifyOn]);
+
+  /**
+   * Un paso de baile con sus sonidos. `quiet`: sin gritos (cuando baila solo
+   * con la música, para no tapar la canción).
+   */
+  const dance = useCallback((name, quiet = false) => {
+    setMove({ name, at: performance.now() / 1000 });
+    setNotice(DANCES[name].text);
+    const v = voice.current;
+    if (!v) return;
+    const at = (ms, s) => timers.current.push(window.setTimeout(() => voice.current?.play(s), ms));
+    if (name === 'spin') {
+      v.play('squeak');
+      if (!quiet) at(MOVES.spin * 760, 'whoo');
+    } else if (name === 'toe') {
+      v.play('snap');
+      if (!quiet) at(250, 'hee');
+    } else if (name === 'kick') {
+      if (!quiet) at(180, 'ow');
+    } else {
+      v.play('squeak');
+      at(MOVES.glide * 380, 'squeak');
+    }
+  }, []);
+
+  // Clic en Michael: el siguiente paso de la lista.
+  const step = useCallback(() => {
+    const name = ORDER[nextMove.current % ORDER.length];
+    nextMove.current += 1;
+    dance(name);
+  }, [dance]);
+
+  const playing = track >= 0 || spotifyOn;
+
+  // Con música, Michael baila solo de vez en cuando (sin gritos).
+  useEffect(() => {
+    if (!playing || reduced) return undefined;
+    const id = window.setInterval(() => {
+      dance(ORDER[Math.floor(Math.random() * ORDER.length)], true);
+    }, 7000);
+    return () => window.clearInterval(id);
+  }, [playing, reduced, dance]);
 
   const takePhoto = () => {
     goTo('cover');
@@ -122,11 +224,20 @@ export default function Route() {
       setNotice('Música parada.');
       return;
     }
+    spotify.current?.pause();
     const ok = await music.current.play(i);
     setNotice(ok ? `Suena «${TRACKS[i]}» (fragmento de 30 s). Michael lleva el ritmo.` : 'No se ha podido cargar el fragmento. ¿Hay conexión?');
   };
 
-  const toggleAlbum = () => (track >= 0 ? playTrack(track) : playTrack(0));
+  const toggleAlbum = () => {
+    if (source === 'spotify' && spotify.current) {
+      spotify.current.toggle();
+      setNotice(spotifyOn ? 'Música parada.' : 'Suena Off the Wall en Spotify. Michael lleva el ritmo.');
+      return;
+    }
+    if (track >= 0) playTrack(track);
+    else playTrack(0);
+  };
 
   const verdict = withinCeiling(budget, CEILING);
   const showBudget = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('budget');
@@ -145,9 +256,9 @@ export default function Route() {
         <Suspense fallback={null}>
           <Scene
             view={view}
-            stepAt={stepAt}
+            move={move}
             flashAt={flashAt}
-            playing={track >= 0}
+            playing={playing}
             level={level}
             reduced={reduced}
             onZone={setZone}
@@ -194,15 +305,30 @@ export default function Route() {
           </fieldset>
 
           <fieldset className="otw__group">
+            <legend>Bailar</legend>
+            {ORDER.map((name) => (
+              <button key={name} type="button" onClick={() => dance(name)}>
+                {DANCES[name].label}
+              </button>
+            ))}
+          </fieldset>
+
+          <fieldset className="otw__group">
+            <legend>Gritos</legend>
+            {SHOUTS.map(([name, label]) => (
+              <button key={name} type="button" onClick={() => voice.current?.play(name)}>
+                {label}
+              </button>
+            ))}
+          </fieldset>
+
+          <fieldset className="otw__group">
             <legend>Hacer</legend>
-            <button type="button" onClick={step}>
-              Hacer un paso
-            </button>
             <button type="button" onClick={takePhoto}>
               Hacer la foto
             </button>
-            <button type="button" aria-pressed={track >= 0} onClick={toggleAlbum}>
-              {track >= 0 ? 'Parar la música' : 'Escuchar el disco'}
+            <button type="button" aria-pressed={playing} onClick={toggleAlbum}>
+              {playing ? 'Parar la música' : 'Escuchar el disco'}
             </button>
           </fieldset>
 
@@ -216,12 +342,45 @@ export default function Route() {
             Ratón o dedo: girar · rueda o pellizco: acercar · <kbd>W</kbd>
             <kbd>A</kbd>
             <kbd>S</kbd>
-            <kbd>D</kbd> o flechas: caminar · clic en Michael: un paso
+            <kbd>D</kbd> o flechas: caminar · clic en Michael: baila
           </p>
 
           <section className="otw__tracks" aria-label="Canciones del disco">
             <h2>Cara A y cara B</h2>
-            <ol>
+            <div className="otw__source" role="group" aria-label="De dónde sale la música">
+              <button type="button" aria-pressed={source === 'spotify'} onClick={() => setSource('spotify')}>
+                Spotify
+              </button>
+              <button
+                type="button"
+                aria-pressed={source === 'apple'}
+                onClick={() => {
+                  spotify.current?.pause();
+                  setSource('apple');
+                }}
+              >
+                Apple Music (30 s)
+              </button>
+            </div>
+            {/* El reproductor de Spotify se monta una vez y solo se oculta: así no se corta la canción. */}
+            <div className="otw__spotify" hidden={source !== 'spotify'}>
+              <div ref={spotifyHost} />
+              {spotifyState === 'loading' ? <p className="otw__credit">Cargando Spotify…</p> : null}
+              {spotifyState === 'error' ? (
+                <p className="otw__credit">
+                  No se ha podido cargar Spotify. Prueba con Apple Music o{' '}
+                  <a href={SPOTIFY_URL} target="_blank" rel="noreferrer">
+                    ábrelo en Spotify
+                  </a>
+                  .
+                </p>
+              ) : null}
+              <p className="otw__credit">
+                Reproductor oficial de Spotify: con tu sesión abierta suenan las canciones enteras. Michael sigue el
+                tempo del disco (Spotify no deja leer su sonido).
+              </p>
+            </div>
+            <ol hidden={source !== 'apple'}>
               {TRACKS.map((t, i) => (
                 <li key={t}>
                   <button
@@ -239,8 +398,8 @@ export default function Route() {
                 </li>
               ))}
             </ol>
-            <p className="otw__credit">
-              Fragmentos de 30 s servidos por Apple Music.{' '}
+            <p className="otw__credit" hidden={source !== 'apple'}>
+              Fragmentos de 30 s servidos por Apple Music; Michael baila con su sonido real.{' '}
               <a href={ALBUM_URL} target="_blank" rel="noreferrer">
                 Escuchar el disco entero
               </a>
