@@ -1,5 +1,8 @@
-// Cámara de la ruta: girar con el ratón o el dedo (OrbitControls), caminar
-// con WASD o las flechas, y viajar a las vistas con nombre de set.js.
+// Cámara de la ruta: girar con el ratón o el dedo (OrbitControls), zoom hacia
+// el cursor con la rueda o el pellizco, caminar con WASD o las flechas (con
+// Mayúsculas se corre), subir y bajar con Q y E, acercarse con + y −, y
+// viajar a las vistas con nombre de set.js. La cruceta táctil y los botones
+// de zoom del panel mandan las mismas teclas (eventos `otw-key` / `otw-zoom`).
 // Nunca se atraviesa la pared ni a Michael. Avisa (onZone) solo cuando cambia
 // la zona desde la que se mira: delante, de lado o por detrás.
 
@@ -10,6 +13,10 @@ import { Vector3 } from 'three';
 import { BOUNDS, MICHAEL, VIEWS, coverPosition } from './set.js';
 
 const WALK_SPEED = 1.7; // metros por segundo
+const RUN = 2.6; // multiplicador con Mayúsculas
+const LIFT_SPEED = 1.1; // subir y bajar, metros por segundo
+// Cuánto acerca o aleja cada pulsación de zoom (fracción de la distancia).
+const ZOOM_STEP = 0.18;
 // El punto al que se mira puede acercarse a la pared, pero no cruzarla.
 const WALL_LIMIT = BOUNDS.minZ - 0.2;
 const KEYS = {
@@ -17,6 +24,8 @@ const KEYS = {
   KeyS: 'b', ArrowDown: 'b',
   KeyA: 'l', ArrowLeft: 'l',
   KeyD: 'r', ArrowRight: 'r',
+  KeyE: 'u',
+  KeyQ: 'd',
 };
 
 /** Zona según el ángulo entre la cámara y el frente de Michael. */
@@ -43,6 +52,9 @@ export default function CameraRig({ view, reduced, onZone }) {
   const goal = useRef(null);
   const pressed = useRef(new Set());
   const zone = useRef('');
+  const running = useRef(false);
+  // Zoom pendiente de los botones o de + y −: se aplica suave en useFrame.
+  const zoom = useRef(0);
   // Vectores reutilizados: nada se crea dentro de useFrame.
   const tmp = useRef({ fwd: new Vector3(), right: new Vector3(), move: new Vector3(), up: new Vector3(0, 1, 0) });
 
@@ -63,6 +75,9 @@ export default function CameraRig({ view, reduced, onZone }) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      running.current = e.shiftKey;
+      if (e.key === '+' || e.code === 'NumpadAdd') zoom.current += 1;
+      if (e.key === '-' || e.code === 'NumpadSubtract') zoom.current -= 1;
       const dir = KEYS[e.code];
       if (!dir) return;
       // Las flechas no deben desplazar la página mientras se camina.
@@ -71,17 +86,33 @@ export default function CameraRig({ view, reduced, onZone }) {
       goal.current = null;
     };
     const up = (e) => {
+      running.current = e.shiftKey;
       const dir = KEYS[e.code];
       if (dir) pressed.current.delete(dir);
     };
     const clear = () => pressed.current.clear();
+    // Cruceta táctil: { dir, on } con las mismas direcciones que el teclado.
+    const pad = (e) => {
+      if (e.detail.on) {
+        pressed.current.add(e.detail.dir);
+        goal.current = null;
+      } else pressed.current.delete(e.detail.dir);
+    };
+    const zoomBtn = (e) => {
+      zoom.current += e.detail;
+      goal.current = null;
+    };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
     window.addEventListener('blur', clear);
+    window.addEventListener('otw-key', pad);
+    window.addEventListener('otw-zoom', zoomBtn);
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
       window.removeEventListener('blur', clear);
+      window.removeEventListener('otw-key', pad);
+      window.removeEventListener('otw-zoom', zoomBtn);
     };
   }, []);
 
@@ -111,10 +142,27 @@ export default function CameraRig({ view, reduced, onZone }) {
       if (pressed.current.has('r')) move.add(right);
       if (pressed.current.has('l')) move.sub(right);
       if (move.lengthSq() > 0) {
-        move.normalize().multiplyScalar(WALK_SPEED * dt);
+        move.normalize().multiplyScalar(WALK_SPEED * (running.current ? RUN : 1) * dt);
         camera.position.add(move);
         c.target.add(move);
       }
+      // Subir (E) y bajar (Q): la cámara y el punto al que mira, juntos.
+      const lift = (pressed.current.has('u') ? 1 : 0) - (pressed.current.has('d') ? 1 : 0);
+      if (lift) {
+        camera.position.y += lift * LIFT_SPEED * dt;
+        c.target.y += lift * LIFT_SPEED * dt;
+      }
+    }
+
+    // 2b. Zoom de los botones y de + y −: acerca o aleja hacia el punto mirado,
+    // repartido en varios fotogramas para que sea suave.
+    if (Math.abs(zoom.current) > 0.01) {
+      const step = reduced ? zoom.current : zoom.current * Math.min(1, dt * 9);
+      zoom.current -= step;
+      const dist = camera.position.distanceTo(c.target);
+      const next = Math.min(c.maxDistance, Math.max(c.minDistance, dist * (1 - step * ZOOM_STEP)));
+      move.subVectors(camera.position, c.target).setLength(next);
+      camera.position.copy(c.target).add(move);
     }
 
     // 3. Límites del plató: ni dentro de la pared, ni fuera, ni bajo el suelo.
@@ -153,9 +201,12 @@ export default function CameraRig({ view, reduced, onZone }) {
       enablePan={false}
       enableDamping={!reduced}
       dampingFactor={0.08}
-      minDistance={0.6}
+      minDistance={0.35}
       maxDistance={10.5}
       maxPolarAngle={1.53}
+      zoomToCursor
+      zoomSpeed={0.9}
+      rotateSpeed={0.7}
       onStart={() => {
         goal.current = null;
       }}

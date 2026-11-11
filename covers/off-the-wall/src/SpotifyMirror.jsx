@@ -15,8 +15,11 @@ import { SPOTIFY_URL } from './spotify.js';
 
 const W = 0.78;
 const H = 1.45;
-// Detrás de la cámara del trípode, mirando hacia Michael (y hacia la pared).
-const POS = [0.25, 0, 7.4];
+// Detrás de las cámaras y a un lado, girado hacia Michael. Va fuera de la línea
+// de la portada: en un móvil vertical esa cámara se aleja hasta unos 10,5 m y
+// un espejo en el centro la taparía.
+const POS = [2.6, 0, 6.4];
+const FACE = Math.atan2(-POS[0], -POS[2]);
 const TILT = -0.04;
 
 /** @param {{ onHover: (on: boolean) => void }} props */
@@ -67,8 +70,8 @@ export default function SpotifyMirror({ onHover }) {
   };
 
   return (
-    // Girado media vuelta: el cristal mira hacia Michael.
-    <group position={POS} rotation={[0, Math.PI, 0]}>
+    // Girado para que el cristal mire hacia Michael.
+    <group position={POS} rotation={[0, FACE, 0]}>
       {/* Dos patas de espejo de pie. */}
       {[-1, 1].map((s) => (
         <mesh key={s} geometry={res.leg} material={res.gold} position={[s * (W / 2 - 0.04), 0.37, -0.06]} rotation={[0.08, 0, 0]} />

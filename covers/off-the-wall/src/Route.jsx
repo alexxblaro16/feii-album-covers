@@ -45,6 +45,18 @@ const SHOUTS = [
 // Altura del reproductor de Spotify con la lista de canciones.
 const SPOTIFY_HEIGHT = 352;
 
+/** Cruceta táctil: dirección que entiende CameraRig, etiqueta y símbolo. */
+const PAD = [
+  ['f', 'Caminar hacia delante', '▲', 'otw__pad-up'],
+  ['l', 'Caminar a la izquierda', '◀', 'otw__pad-left'],
+  ['r', 'Caminar a la derecha', '▶', 'otw__pad-right'],
+  ['b', 'Caminar hacia atrás', '▼', 'otw__pad-down'],
+];
+
+/** Avisa a la cámara (CameraRig escucha estos eventos en window). */
+const padKey = (dir, on) => window.dispatchEvent(new CustomEvent('otw-key', { detail: { dir, on } }));
+const zoomBy = (n) => window.dispatchEvent(new CustomEvent('otw-zoom', { detail: n }));
+
 const TRACKS = [
   "Don't Stop 'Til You Get Enough",
   'Rock with You',
@@ -368,6 +380,38 @@ export default function Route() {
       <div className="otw__grain" aria-hidden="true" />
       <div className={`otw__flash ${flashing ? 'is-on' : ''}`} aria-hidden="true" />
 
+      {/* Zoom en pantalla (también con la rueda, el pellizco o las teclas + y −). */}
+      <div className="otw__zoom" role="group" aria-label="Zoom">
+        <button type="button" aria-label="Acercar" aria-keyshortcuts="+" onClick={() => zoomBy(1)}>
+          +
+        </button>
+        <button type="button" aria-label="Alejar" aria-keyshortcuts="-" onClick={() => zoomBy(-1)}>
+          −
+        </button>
+      </div>
+
+      {/* Cruceta para caminar con el dedo (solo en pantallas táctiles). */}
+      <div className="otw__pad" role="group" aria-label="Caminar por el plató">
+        {PAD.map(([dir, label, sym, cls]) => (
+          <button
+            key={dir}
+            type="button"
+            className={cls}
+            aria-label={label}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture?.(e.pointerId);
+              padKey(dir, true);
+            }}
+            onPointerUp={() => padKey(dir, false)}
+            onPointerCancel={() => padKey(dir, false)}
+            onLostPointerCapture={() => padKey(dir, false)}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            {sym}
+          </button>
+        ))}
+      </div>
+
       <aside className={`otw__panel ${panelOpen ? '' : 'is-closed'}`} aria-label="Controles de la portada">
         <header className="otw__head">
           <p className="otw__artist">Michael Jackson</p>
@@ -446,7 +490,8 @@ export default function Route() {
             Ratón o dedo: girar · rueda o pellizco: acercar · <kbd>W</kbd>
             <kbd>A</kbd>
             <kbd>S</kbd>
-            <kbd>D</kbd> o flechas: caminar · clic en Michael: baila · <kbd>1</kbd>–<kbd>4</kbd> bailes ·{' '}
+            <kbd>D</kbd> o flechas: caminar (<kbd>Mayús</kbd> corre) · <kbd>Q</kbd>/<kbd>E</kbd> bajar y subir ·{' '}
+            <kbd>+</kbd>/<kbd>−</kbd> zoom · clic en Michael: baila · <kbd>1</kbd>–<kbd>4</kbd> bailes ·{' '}
             <kbd>C</kbd> coreografía · <kbd>F</kbd> foto · <kbd>M</kbd> música
           </p>
 
