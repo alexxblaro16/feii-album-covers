@@ -8,8 +8,10 @@
 // Detrás va el mortero, una caja clara algo más fina que los ladrillos.
 
 import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { Color, Matrix4, Euler, Quaternion, Vector3 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { createBrickMaterial } from './brickMaterial.js';
 import { WALL } from './set.js';
 
 // Medidas reales aproximadas de un ladrillo macizo (escala 1 = 1 metro).
@@ -57,7 +59,10 @@ function layBricks() {
   return bricks;
 }
 
-export default function BrickWall() {
+/**
+ * @param {{ playing: boolean, level: () => number, reduced: boolean }} props
+ */
+export default function BrickWall({ playing, level, reduced }) {
   const mesh = useRef(null);
   const bricks = useMemo(() => layBricks(), []);
   const geometry = useMemo(() => new RoundedBoxGeometry(BRICK.w, BRICK.h, BRICK.d, 1, 0.008), []);
@@ -83,18 +88,29 @@ export default function BrickWall() {
     mesh.current.computeBoundingSphere();
   }, [bricks]);
 
-  // La geometría se creó a mano: se libera al desmontar la ruta.
+  // Material con el shader propio (task2): grano del ladrillo y charco de luz con los graves.
+  const brick = useMemo(() => createBrickMaterial(), []);
+
+  // La geometría y el material se crearon a mano: se liberan al desmontar la ruta.
   useLayoutEffect(() => () => geometry.dispose(), [geometry]);
+  useLayoutEffect(() => () => brick.material.dispose(), [brick]);
+
+  useFrame(() => {
+    // Con reducción de movimiento el charco no late: se queda encendido, quieto.
+    const target = playing ? (reduced ? 0.35 : level()) : 0;
+    const m = mesh.current;
+    if (!m) return;
+    const u = m.material.userData.uniforms.uPulse;
+    u.value += (target - u.value) * 0.3;
+  });
 
   return (
     <group>
       <instancedMesh
         ref={mesh}
-        args={[geometry, undefined, bricks.length]}
+        args={[geometry, brick.material, bricks.length]}
         receiveShadow
-      >
-        <meshStandardMaterial roughness={0.92} metalness={0} />
-      </instancedMesh>
+      />
       {/* Mortero: queda hundido entre ladrillos. */}
       <mesh position={[0, WALL.height / 2, WALL.z + 0.03]} receiveShadow>
         <boxGeometry args={[WALL.width + 0.3, WALL.height, 0.06]} />

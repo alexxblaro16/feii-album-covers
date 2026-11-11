@@ -22,4 +22,6 @@ Medido con el `BudgetProbe` de la galería (panel en `/covers/off-the-wall?budge
 
 Fotogramas: unos 60 por segundo en esa máquina (contados con `requestAnimationFrame` durante 3 s). El grano de película del DOM va sin `mix-blend-mode`: con él bajaba a unos 57.
 
+task2 (shader de los ladrillos): mismas lecturas en las cuatro vistas (79 / 76 / 79 / 96 calls, unos 191 000 triángulos, 6 texturas); el shader no añade llamadas ni texturas.
+
 Móvil: sin medir en un teléfono real. En la vista "El plató" se pasa del tope de 80 llamadas (96); en las otras tres vistas queda en 76–79. Si hace falta, el siguiente paso es fusionar las piezas estáticas de Michael en menos mallas.

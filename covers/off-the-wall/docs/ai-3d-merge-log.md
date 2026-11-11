@@ -1,6 +1,6 @@
 # AI-assisted 3D merge log
 
-Cambios propuestos con ayuda de IA (Claude Code) durante task1 y lo que se decidió con cada uno.
+Cambios propuestos con ayuda de IA (Claude Code) durante task1 y task2 y lo que se decidió con cada uno.
 
 | Diff | Gate | Decision | Reason |
 | --- | --- | --- | --- |
@@ -14,3 +14,6 @@ Cambios propuestos con ayuda de IA (Claude Code) durante task1 y lo que se decid
 | 8 — `CameraRig`: vistas con nombre, caminar con WASD y flechas, límites de pared y de Michael | motion | ACCEPT | Sin objetos nuevos por fotograma, `delta` limitado a 0,05 y salto directo con `prefers-reduced-motion`. |
 | 9 — limpieza al desmontar (geometrías y materiales hechos a mano, clase en `<html>`, fuentes, temporizadores y audio) | memory | ACCEPT | Cada `useMemo` que crea recursos de three tiene su `dispose` en un efecto, y el reproductor para el audio, cancela la petición y cierra su `AudioContext`. |
 | 10 — estado por fotograma en refs, no en React (zona de la cámara, destello, pose) | literacy | ACCEPT | Solo se llama a `setState` cuando cambia la zona; lo demás se escribe directamente en los objetos de three dentro de `useFrame`. |
+| 11 — task2: `ShaderMaterial` escrito desde cero para los ladrillos | API truth | REJECT | Habría que reescribir la luz y las sombras a mano; se inyecta el GLSL en el `MeshStandardMaterial` con `onBeforeCompile` y se conserva todo lo de three. |
+| 12 — task2: animar `uPulse` cambiando el objeto que devuelve `useMemo` | memory | REJECT | El linter de hooks lo prohíbe; los uniforms viajan en `material.userData` y se animan a través de la ref de la malla. |
+| 13 — task2: charco de luz en mundo, grano procedural, `mediump` con `mod` en el hash | literacy | ACCEPT | Una sola idea explicable en `docs/shader-note.md`, sin texturas, bucles ni `discard`; las llamadas y los triángulos no cambian. |

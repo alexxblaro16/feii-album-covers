@@ -68,7 +68,7 @@ export default function Scene({ view, stepAt, flashAt, playing, level, reduced, 
         <meshStandardMaterial color="#4e4640" roughness={0.93} />
       </mesh>
 
-      <BrickWall />
+      <BrickWall playing={playing} level={level} reduced={reduced} />
       <Michael stepAt={stepAt} playing={playing} reduced={reduced} level={level} onStep={onStep} onHover={onHover} />
       <Studio flash={flashAt} />
       <CameraRig view={view} reduced={reduced} onZone={onZone} />
