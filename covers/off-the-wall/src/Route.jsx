@@ -10,7 +10,7 @@ import BudgetProbe from '../../../src/lib/BudgetProbe.jsx';
 import { withinCeiling } from '../../../src/lib/budget.js';
 import usePrefersReducedMotion from '../../../src/lib/usePrefersReducedMotion.js';
 import { CEILING } from './budget.js';
-import { MOVES } from './dances.js';
+import { GLIDE, MOVES } from './dances.js';
 import { ALBUM_URL, createPlayer } from './player.js';
 import { SPOTIFY_URL, createSpotify } from './spotify.js';
 import { createVoice } from './voice.js';
@@ -27,7 +27,7 @@ const DANCES = {
   spin: { label: 'La vuelta', text: 'Michael gira dos veces sobre un pie y acaba de puntillas. ¡Uuh!' },
   toe: { label: 'De puntillas', text: 'Michael se pone de puntillas y sube el brazo. ¡Ji-ji!' },
   kick: { label: 'Patada', text: 'Patada al frente, seca, con los brazos abiertos. ¡Au!' },
-  glide: { label: 'Deslizarse', text: 'Michael se desliza hacia atrás alternando los talones y vuelve a su sitio.' },
+  glide: { label: 'Moonwalk', text: 'Moonwalk: Michael se desliza hacia atrás, un pie plano y el otro de puntillas, y remata de puntillas.' },
 };
 const ORDER = /** @type {(keyof typeof MOVES)[]} */ (Object.keys(DANCES));
 /** Orden de la coreografía completa. */
@@ -192,8 +192,9 @@ export default function Route() {
       if (!quiet) at(180, 'ow');
       at(560, 'hoo');
     } else {
-      v.play('squeak');
-      at(MOVES.glide * 380, 'squeak');
+      // Un roce de suela en cada paso del moonwalk y el grito al rematar.
+      for (let i = 0; i < GLIDE.steps; i += 1) at(i * GLIDE.step * 1000, 'squeak');
+      if (!quiet) at((GLIDE.steps * GLIDE.step + 0.1) * 1000, 'hee');
     }
   }, []);
 
@@ -222,7 +223,7 @@ export default function Route() {
       later(() => dance(name), t);
       t += (MOVES[name] + 0.15) * 1000;
     }
-    later(() => setNotice('¡Coreografía completa! Vuelta, deslizarse, patada y de puntillas.'), t);
+    later(() => setNotice('¡Coreografía completa! Vuelta, moonwalk, patada y de puntillas.'), t);
   };
 
   /**

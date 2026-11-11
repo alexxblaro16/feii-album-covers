@@ -8,6 +8,7 @@ import CameraRig from './CameraRig.jsx';
 import Michael from './Michael.jsx';
 import Studio from './Studio.jsx';
 import WallWindow from './WallWindow.jsx';
+import LiveMonitor from './LiveMonitor.jsx';
 
 const BACKGROUND = '#120c0a';
 
@@ -73,6 +74,7 @@ export default function Scene({ view, move, flashAt, playing, level, reduced, on
       <WallWindow />
       <Michael move={move} playing={playing} reduced={reduced} level={level} onStep={onStep} onHover={onHover} />
       <Studio flash={flashAt} />
+      <LiveMonitor />
       <CameraRig view={view} reduced={reduced} onZone={onZone} />
     </>
   );

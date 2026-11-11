@@ -7,8 +7,11 @@ export const MOVES = {
   spin: 1.5,
   toe: 1.6,
   kick: 1.15,
-  glide: 2.6,
+  glide: 3.9,
 };
+
+/** Medidas del moonwalk: pasos, duración de cada uno (s), avance (m), ángulo de pierna y talón. */
+export const GLIDE = { steps: 5, step: 0.46, stride: 0.17, angle: 0.11, toe: 0.7, pause: 0.45 };
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 /** Suavizado de entrada y salida. */
@@ -85,21 +88,74 @@ const POSES = {
       elbowL: -arms * 0.3,
     };
   },
-  // Deslizarse hacia atrás alternando los talones, y volver a su sitio.
+  // Moonwalk: en cada paso un pie va plano y se arrastra hacia atrás mientras
+  // el otro se queda clavado en el suelo con el talón levantado; luego se
+  // cambian. El cuerpo retrocede a velocidad constante. Después, pausa de
+  // puntillas y vuelta a su sitio andando.
   glide(k) {
-    const w = hold(k, 0, 0.78, 0.08);
-    const phase = clamp01(k / 0.78) * 7;
-    const sw = Math.sin(phase * Math.PI);
+    const t = k * MOVES.glide;
+    const end = GLIDE.steps * GLIDE.step;
+    const far = GLIDE.steps * GLIDE.stride;
+    // Brazos de moonwalk: codos doblados, manos a la altura de la cadera.
+    const arms = hold(t, 0, end + GLIDE.pause, 0.2);
+    const base = {
+      lean: arms * 0.07,
+      armRZ: -arms * 0.16,
+      armLZ: arms * 0.16,
+      elbowR: -arms * 0.95,
+      elbowL: -arms * 0.95,
+    };
+    if (t < end) {
+      const s = Math.floor(t / GLIDE.step);
+      const f = (t - s * GLIDE.step) / GLIDE.step;
+      const right = s % 2 === 0;
+      // El pie que se arrastra (plano) va de delante a atrás; el clavado, al
+      // revés respecto al cuerpo, porque el cuerpo se va hacia atrás.
+      const slide = -GLIDE.angle + 2 * GLIDE.angle * f;
+      const plant = -slide;
+      // El cambio de pie es rápido: el talón sube y baja en el primer 15 %.
+      const up = clamp01(f / 0.15);
+      return {
+        ...base,
+        back: -(s + f) * GLIDE.stride,
+        legR: right ? slide : plant,
+        legL: right ? plant : slide,
+        toeR: right ? GLIDE.toe * (1 - up) : GLIDE.toe * up,
+        toeL: right ? GLIDE.toe * up : GLIDE.toe * (1 - up),
+        tilt: (right ? 1 : -1) * 0.035,
+        headX: Math.sin(f * Math.PI) * 0.06,
+      };
+    }
+    if (t < end + GLIDE.pause) {
+      // Remate: los pies se juntan y se pone de puntillas un momento.
+      const u = (t - end) / GLIDE.pause;
+      const toes = Math.sin(u * Math.PI);
+      const settle = 1 - ease(u * 3);
+      return {
+        ...base,
+        back: -far,
+        legR: GLIDE.angle * settle,
+        legL: -GLIDE.angle * settle,
+        toeR: toes * 0.65,
+        toeL: toes * 0.65,
+        lift: toes * 0.07,
+        headY: toes * 0.35,
+        headX: -toes * 0.1,
+      };
+    }
+    // Vuelta a su sitio andando, con pasos normales.
+    const u = clamp01((t - end - GLIDE.pause) / (MOVES.glide - end - GLIDE.pause));
+    const sw = Math.sin(u * Math.PI * 4) * bell(u, 0, 1);
     return {
-      back: -ease(k / 0.78) * 0.5 + ease((k - 0.78) / 0.22) * 0.5,
-      toeL: w * Math.max(0, sw) * 0.7,
-      toeR: w * Math.max(0, -sw) * 0.7,
-      lean: w * 0.06,
-      headX: w * Math.abs(sw) * 0.06,
-      armRZ: -w * 0.18,
-      armLZ: w * 0.18,
-      elbowR: -w * (0.5 + Math.max(0, -sw) * 0.4),
-      elbowL: -w * (0.5 + Math.max(0, sw) * 0.4),
+      back: -far * (1 - ease(u)),
+      legR: -sw * 0.22,
+      legL: sw * 0.22,
+      toeR: Math.max(0, sw) * 0.25,
+      toeL: Math.max(0, -sw) * 0.25,
+      armRZ: -0.05,
+      armLZ: 0.05,
+      armRX: sw * 0.18,
+      armLX: -sw * 0.18,
     };
   },
 };
@@ -111,7 +167,7 @@ export function movePose(move, reduced) {
   const k = (performance.now() / 1000 - move.at) / dur;
   if (k < 0 || k > 1) return ZERO;
   // Sin animación: se enseña el momento más vistoso del paso, quieto.
-  const kk = reduced ? { spin: 0.85, toe: 0.5, kick: 0.37, glide: 0.4 }[move.name] : k;
+  const kk = reduced ? { spin: 0.85, toe: 0.5, kick: 0.37, glide: 0.3 }[move.name] : k;
   const p = POSES[move.name](kk);
   if (reduced) p.turn = 0;
   return { ...ZERO, ...p };

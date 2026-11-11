@@ -3,7 +3,7 @@
 Album: Michael Jackson — Off the Wall (1979).
 Scene: pared de ladrillo de 4,2 m (1 InstancedMesh de unos 1.340 ladrillos con bisel + mortero), suelo, Michael (unas 55 mallas con perfiles de torno; los dedos no proyectan sombra), plató (2 ventanas de luz, trípode con cámara, reflector, marca en el suelo). Una sola luz con sombra (la principal, mapa de 2048 px, PCF); el plató y la pared no proyectan sombra, solo la reciben. Entorno de reflejos con `Environment` + `Lightformer` (se pinta una vez, sin HDR descargado). DPR [1, 1.5].
 Unit cap, any scene: desktop ≤ 200 calls, mobile ≤ 80.
-Accepted ceiling for this tree: calls ≤ 98, triangles ≤ 193 000, geometries ≤ 90, textures ≤ 6.
+Accepted ceiling for this tree: calls ≤ 98, triangles ≤ 193 000, geometries ≤ 90, textures ≤ 7 (antes 6; la séptima es la textura del monitor en directo).
 
 Pins: three@0.185.1, @react-three/fiber@9.8.2, @react-three/drei@10.7.9, react@19.3.1 (this repo's package.json).
 
@@ -29,3 +29,6 @@ Cabeza nueva (afro que enmarca la cara, ojos, cejas, patillas, nariz y sonrisa) 
 Plató horneado (todas sus piezas fundidas por material, `Studio.jsx`) y ventana en la pared. Medido en Intel UHD el 2026-11-11: Portada 71 calls / 189 592 tri / 64 geometrías; De lado 70 / 189 552 / 66; Por detrás 62 / 187 922 / 66; El plató 73 / 189 684 / 66; 6 texturas y unos 60 fps.
 
 Móvil: sin medir en un teléfono real, pero las cuatro vistas quedan ya por debajo del tope de 80 llamadas (62–73). El lienzo usa `preserveDrawingBuffer` para poder guardar la foto de la portada; no cambia las llamadas.
+
+Monitor en directo del plató (`LiveMonitor.jsx`) y moonwalk nuevo. Medido en Intel UHD el 2026-11-11 con el panel ?budget: Portada 74 calls / 189 646 tri / 67 geometrías; De lado 70 / 189 552 / 69; Por detrás 66 / 188 056 / 71; El plató 76 / 189 738 / 71; 7 texturas; unos 60 fps. El monitor hace una segunda pasada de render a una textura de 320 px que `renderer.info` no recoge (se reinicia en cada render), así que se midió aparte contando las llamadas de WebGL de cada fotograma con todas las pasadas (sombra, monitor y escena): como mucho 95 en escritorio y 95 en móvil simulado (390x844), por debajo del tope de 200 de escritorio. La pasada del monitor solo se hace si se ve y está de cara, cada 2 fotogramas en escritorio y una sola vez en pantallas pequeñas o táctiles.
+

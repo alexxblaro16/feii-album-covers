@@ -359,12 +359,14 @@ function Head({ mats, geos }) {
  * Pierna: pernera, calcetín blanco y mocasín (que gira desde la punta).
  * Toda la pierna cuelga de un pivote en la cadera, para poder dar la patada.
  */
-function Leg({ side, mats, geos, shoeRef, legRef }) {
+function Leg({ side, mats, geos, shoeRef, legRef, sockRef }) {
   return (
     <group ref={legRef} position={[side * 0.098, HIP_Y, 0]}>
       <group position={[0, -HIP_Y, 0]}>
         <mesh geometry={geos.trouser} position={[0, HIP_Y, 0]} material={mats.wool} castShadow />
-        <mesh position={[0, 0.115, 0]} material={mats.sock} castShadow>
+        {/* El calcetín sube recto lo mismo que el talón (se mueve en useFrame):
+            así no se separa del zapato y el sobrante queda dentro de la pernera. */}
+        <mesh ref={sockRef} position={[0, 0.115, 0]} material={mats.sock} castShadow>
           <cylinderGeometry args={[0.047, 0.044, 0.11, 20]} />
         </mesh>
         {/* Pivote en la punta del pie: al ponerse de puntillas se levanta el talón. */}
@@ -403,6 +405,8 @@ export default function Michael({ move, playing, reduced, level, onStep, onHover
   const shoeR = useRef(null);
   const legL = useRef(null);
   const legR = useRef(null);
+  const sockL = useRef(null);
+  const sockR = useRef(null);
   const beat = useRef(0);
 
   useFrame(({ clock }) => {
@@ -439,6 +443,9 @@ export default function Michael({ move, playing, reduced, level, onStep, onHover
     legL.current.rotation.x = p.legL;
     shoeL.current.rotation.x = p.toeL;
     shoeR.current.rotation.x = p.toeR;
+    // El talón está a 0,17 m de la punta: sube 0,17·sen(ángulo).
+    sockL.current.position.y = 0.115 + 0.17 * Math.sin(p.toeL);
+    sockR.current.position.y = 0.115 + 0.17 * Math.sin(p.toeR);
   });
 
   return (
@@ -455,8 +462,8 @@ export default function Michael({ move, playing, reduced, level, onStep, onHover
       onPointerOut={() => onHover(false)}
     >
       <group ref={body}>
-        <Leg side={-1} mats={mats} geos={geos} shoeRef={shoeR} legRef={legR} />
-        <Leg side={1} mats={mats} geos={geos} shoeRef={shoeL} legRef={legL} />
+        <Leg side={-1} mats={mats} geos={geos} shoeRef={shoeR} legRef={legR} sockRef={sockR} />
+        <Leg side={1} mats={mats} geos={geos} shoeRef={shoeL} legRef={legL} sockRef={sockL} />
         <group ref={torso} position={[0, HIP_Y, 0]}>
           <mesh geometry={geos.jacket} scale={[1, 1, FLAT]} material={mats.wool} castShadow receiveShadow />
           <mesh geometry={geos.shirtV} material={mats.shirt} />
