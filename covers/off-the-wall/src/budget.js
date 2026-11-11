@@ -7,4 +7,4 @@
 // Cambiar el árbol obliga a cambiar este techo y la tabla en el mismo PR.
 
 /** @type {import('../../../src/lib/types.js').Ceiling | null} */
-export const CEILING = { calls: 98, triangles: 193000, geometries: 90, textures: 7 };
+export const CEILING = { calls: 98, triangles: 193000, geometries: 90, textures: 8 };

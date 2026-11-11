@@ -3,7 +3,7 @@
 Album: Michael Jackson — Off the Wall (1979).
 Scene: pared de ladrillo de 4,2 m (1 InstancedMesh de unos 1.340 ladrillos con bisel + mortero), suelo, Michael (unas 55 mallas con perfiles de torno; los dedos no proyectan sombra), plató (2 ventanas de luz, trípode con cámara, reflector, marca en el suelo). Una sola luz con sombra (la principal, mapa de 2048 px, PCF); el plató y la pared no proyectan sombra, solo la reciben. Entorno de reflejos con `Environment` + `Lightformer` (se pinta una vez, sin HDR descargado). DPR [1, 1.5].
 Unit cap, any scene: desktop ≤ 200 calls, mobile ≤ 80.
-Accepted ceiling for this tree: calls ≤ 98, triangles ≤ 193 000, geometries ≤ 90, textures ≤ 7 (antes 6; la séptima es la textura del monitor en directo).
+Accepted ceiling for this tree: calls ≤ 98, triangles ≤ 193 000, geometries ≤ 90, textures ≤ 8 (antes 6; la séptima es el monitor en directo y la octava el espejo).
 
 Pins: three@0.185.1, @react-three/fiber@9.8.2, @react-three/drei@10.7.9, react@19.3.1 (this repo's package.json).
 
@@ -34,3 +34,5 @@ Monitor en directo del plató (`LiveMonitor.jsx`) y moonwalk nuevo. Medido en In
 
 
 Esmoquin abierto (fajín y botones de camisa) y monitor a 512 px, medido en Intel UHD el 2026-11-11: Portada 77 calls / 189 998 tri / 70 geometrías; De lado 73 / 189 904 / 72; Por detrás 70 / 188 548 / 74; El plató 80 / 190 230 / 74; 7 texturas. Todas dentro del techo y en el tope de móvil (El plató, justo en 80).
+
+Espejo detrás de las cámaras (Reflector, 512 px), medido en Intel UHD el 2026-11-11: Portada 77 calls; De lado 73; Por detrás 69; El plató 79; 8 texturas. Contando todas las pasadas de WebGL por fotograma (sombra, monitor, espejo y escena): como mucho 98 en escritorio y 102 en móvil simulado.

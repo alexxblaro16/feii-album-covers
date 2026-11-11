@@ -481,6 +481,12 @@ export default function Route() {
                 </p>
               ) : null}
               <p className="otw__credit">
+                <a href={SPOTIFY_URL} target="_blank" rel="noreferrer">
+                  Abrir el disco en Spotify
+                </a>{' '}
+                (también pulsando el espejo dorado que hay detrás de las cámaras).
+              </p>
+              <p className="otw__credit">
                 Reproductor oficial de Spotify: con tu sesión abierta suenan las canciones enteras. Michael sigue el
                 tempo del disco (Spotify no deja leer su sonido).
               </p>
