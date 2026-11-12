@@ -754,8 +754,11 @@
   animation: otw-spin 1.8s linear infinite;
 }
 
+/* Disco de carga con la foto en todo el disco (un "picture disc"): solo aquí,
+   los vinilos del plató siguen con la etiqueta en el centro. */
 .otw__intro-label {
-  width: 44%;
+  position: relative;
+  width: 100%;
   aspect-ratio: 1;
   border-radius: 50%;
   background-color: #b5452a;
@@ -764,7 +767,24 @@
   display: grid;
   place-content: center;
   line-height: 1.05;
-  text-shadow: 0 1px 3px #000;
+  text-shadow: 0 1px 4px #000, 0 0 12px rgb(0 0 0 / 0.8);
+}
+
+/* Surcos y brillo del vinilo por encima de la foto, y el agujero del eje. */
+.otw__intro-label::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #0c0a09 0 2.2%, rgb(247 233 207 / 0.5) 2.3% 2.9%, transparent 3%),
+    radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.16), transparent 45%),
+    repeating-radial-gradient(circle, rgb(0 0 0 / 0.22) 0 1px, transparent 1px 4px);
+  pointer-events: none;
+}
+
+.otw__intro-label > * {
+  position: relative;
 }
 
 .otw__intro-label span {
@@ -1089,3 +1109,198 @@
   border-color: transparent;
 }
 
+
+/* Foto de Michael con Muscles: se abre al pulsar la boa y se cierra con la ×,
+   pulsando fuera o con Escape. */
+.otw__photo {
+  position: absolute;
+  inset: 0;
+  z-index: 38;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(8 5 4 / 0.72);
+}
+
+.otw__photo figure {
+  position: relative;
+  margin: 0;
+  padding: 10px 10px 12px;
+  border: 1px solid var(--otw-line);
+  border-radius: 10px;
+  background: var(--otw-glass);
+  box-shadow: 0 18px 60px rgb(0 0 0 / 0.6);
+}
+
+.otw__photo img {
+  display: block;
+  max-width: min(495px, calc(100vw - 52px));
+  max-height: calc(100dvh - 150px);
+  min-width: 160px;
+  min-height: 120px;
+  border-radius: 6px;
+}
+
+.otw__photo figcaption {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  max-width: min(495px, calc(100vw - 52px));
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+}
+
+.otw__photo figcaption strong {
+  font-family: 'Yellowtail', cursive;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--otw-cream);
+}
+
+.otw__photo button {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--otw-line);
+  border-radius: 999px;
+  background: var(--otw-brick);
+  color: var(--otw-ink);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.otw__photo button:focus-visible {
+  outline: 2px solid var(--otw-cream);
+  outline-offset: 2px;
+}
+
+.otw__photo figcaption small {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* La ficha entera cabe siempre en la pantalla: la foto se queda en algo más de
+   media altura y, si el texto es largo, se desplaza dentro de la ficha. */
+.otw__photo figure {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overflow-x: visible;
+}
+
+.otw__photo img {
+  max-height: 56dvh;
+  margin: 0 auto;
+}
+
+.otw__photo button {
+  top: 6px;
+  right: 6px;
+}
+
+/* Recorrido de entrada, como una secuencia de cine: franjas negras arriba y
+   abajo, todo lo demás escondido, el rótulo de cada parada y «Saltar». */
+.otw__cine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 33;
+  height: 11dvh;
+  background: #050302;
+  pointer-events: none;
+  transition: transform 0.9s ease;
+}
+
+.otw__cine--top {
+  top: 0;
+  transform: translateY(-101%);
+}
+
+.otw__cine--bottom {
+  bottom: 0;
+  transform: translateY(101%);
+}
+
+.otw--tour .otw__cine {
+  transform: none;
+}
+
+.otw--tour .otw__music,
+.otw--tour .otw__panel,
+.otw--tour .otw__zoom,
+.otw--tour .otw__pad,
+.otw--tour .otw__hint,
+.otw--tour .otw__deck,
+.otw--tour .otw__deck-arrow {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.otw__music,
+.otw__panel,
+.otw__zoom {
+  transition: opacity 0.8s ease;
+}
+
+.otw__tour-caption {
+  position: absolute;
+  left: 50%;
+  bottom: calc(11dvh + 22px);
+  z-index: 34;
+  margin: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 400 clamp(1.5rem, 4.2vw, 2.9rem) / 1.1 'Yellowtail', cursive;
+  color: var(--otw-cream);
+  text-shadow: 0 2px 18px rgb(0 0 0 / 0.9), 0 0 3px rgb(0 0 0 / 0.9);
+  pointer-events: none;
+  animation: otw-caption 2.3s ease both;
+}
+
+@keyframes otw-caption {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.otw .otw__tour-skip {
+  position: absolute;
+  right: 18px;
+  bottom: calc(5.5dvh - 18px);
+  z-index: 36;
+  min-height: 36px;
+  padding: 4px 16px;
+  border: 1px solid var(--otw-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--otw-ink);
+  font: 500 0.85rem/1 'Oswald', sans-serif;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.otw .otw__spotify-album {
+  margin: 8px 0 2px;
+  min-height: 32px;
+  padding: 4px 14px;
+  border: 1px solid var(--otw-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--otw-ink);
+  font: inherit;
+  cursor: pointer;
+}

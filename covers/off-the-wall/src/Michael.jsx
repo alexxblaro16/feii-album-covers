@@ -59,10 +59,12 @@ const LITE = typeof window !== 'undefined' && window.matchMedia('(pointer: coars
 // Ensanchado del tronco (1 = el modelo tal cual).
 const WIDEN = 1.05;
 const WAIST = 0.15;
+// Distancia del centro del pecho al hombro (donde cuelga el brazo y va la hombrera).
+const SHOULDER = 0.198;
 // Postura de baile neutra: de pie, relajado, de la que parten los pasos.
 const DANCE = {
   hip: 0.035, shoulders: -0.05, headTilt: 0.07, headTurn: 0.08,
-  armRZ: -0.1, armRX: -0.05, elbowR: -0.38, armLZ: 0.1, armLX: -0.05, elbowL: -0.44,
+  armRZ: -0.07, armRX: -0.05, elbowR: -0.38, armLZ: 0.07, armLX: -0.05, elbowL: -0.44,
   elbowRZ: 0, elbowLZ: 0,
   wristRX: 0, wristRY: 0, wristRZ: 0, wristLX: 0, wristLY: 0, wristLZ: 0, thumbIn: 0,
   legOutR: 0.045, legOutL: 0, footOut: 0.12, heelL: 0, kneeInL: 0, kneeBendL: 0, kneeInR: 0, footInR: 0, hipOut: 0,
@@ -75,7 +77,9 @@ const COVER = {
   // la imagen), la cadera sale hacia ese lado y el tronco se inclina hacia el
   // otro; la cabeza compensa y queda casi recta. (Ajustado a mano por Alejandro.)
   hip: 0.06, shoulders: 0.07, headTilt: -0.08, headTurn: -0.04,
-  armRZ: -0.12, armRX: 0.18, elbowR: -0.75, armLZ: 0.12, armLX: 0.35, elbowL: -1.48,
+  // (Los brazos caen 0,03 más rectos desde que los hombros son más anchos:
+  // las manos se quedan donde estaban.)
+  armRZ: -0.09, armRX: 0.18, elbowR: -0.75, armLZ: 0.09, armLX: 0.35, elbowL: -1.48,
   elbowRZ: 0.25, elbowLZ: -0.15,
   // Muñecas: la mano cae sobre el muslo con los dedos hacia abajo y el
   // pulgar dentro del bolsillo (thumbIn lo esconde dentro del pantalón).
@@ -96,10 +100,12 @@ const JACKET = [
   [0.145, 0.36],
   // Hombros rectos con hombrera, como un esmoquin de la época: el perfil se
   // mantiene ancho casi hasta arriba y se cierra de golpe hacia el cuello.
-  [0.168, 0.46],
-  [0.181, 0.55],
-  [0.177, 0.578],
-  [0.12, 0.598],
+  // En la portada se le ve ancho de hombros: la chaqueta se abre más arriba y
+  // encima va una hombrera a cada lado (jacketGeometry).
+  [0.18, 0.46],
+  [0.198, 0.55],
+  [0.196, 0.578],
+  [0.125, 0.598],
   [0.06, 0.608],
   [0.0, 0.612],
 ];
@@ -366,12 +372,20 @@ function useMaterials() {
 
 /** Geometrías hechas a mano (torno, banda del pecho, pelo); se liberan al salir. */
 function jacketGeometry() {
-  const jacket = new LatheGeometry(
+  const body = new LatheGeometry(
     [[jacketRadius(WAIST), WAIST], ...JACKET.filter(([, y]) => y > WAIST)].map(([r, y]) => new Vector2(r, y)),
     64,
     0.45,
     Math.PI * 2 - 0.9,
   );
+  // Hombreras: una pastilla achatada sobre cada hombro, que sobresale por
+  // encima de la manga y deja la línea del hombro recta y ancha. Van fundidas
+  // con la chaqueta (ni una llamada más) y suben con ella en la postura de la
+  // portada. La malla se aplasta luego en z (FLAT): aquí se compensa.
+  const pads = [-1, 1].map((s) =>
+    place(new SphereGeometry(0.05, 24, 16), [s * (SHOULDER - 0.003), 0.535, -0.006], [0, 0, 0], [1, 1.15, 1 / FLAT]),
+  );
+  const jacket = fuse([body, ...pads]);
   const raised = jacket.clone();
   const positions = raised.attributes.position;
   for (let i = 0; i < positions.count; i += 1) {
@@ -454,7 +468,7 @@ function lapelWidth(y) {
 /** Brazo: hombro, codo, puño blanco de la camisa y mano. */
 function Arm({ side, mats, armRef, elbowRef, wristRef, thumbRef }) {
   return (
-    <group ref={armRef} position={[side * 0.177, 0.545, -0.005]}>
+    <group ref={armRef} position={[side * SHOULDER, 0.545, -0.005]}>
       {/* La manga empieza dentro del hombro: así el hombro queda recto, sin bulto. */}
       <mesh position={[0, -0.17, 0]} material={mats.wool} castShadow>
         <capsuleGeometry args={[0.045, 0.24, 8, 20]} />
@@ -644,9 +658,10 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
     wristR.current.rotation.set(R.wristRX, R.wristRY, R.wristRZ);
     wristL.current.rotation.set(R.wristLX, R.wristLY, R.wristLZ);
     // El pulgar entra en el bolsillo: se encoge hasta desaparecer en el pantalón.
-    const thumb = Math.max(0.001, 1 - R.thumbIn);
-    thumbL.current.scale.setScalar(thumb);
-    thumbR.current.scale.setScalar(thumb);
+    // Solo el de la mano derecha, la que cae junto al muslo; la izquierda va
+    // abierta a la altura de la cintura y enseña siempre sus cinco dedos.
+    thumbR.current.scale.setScalar(Math.max(0.001, 1 - R.thumbIn));
+    thumbL.current.scale.setScalar(1);
 
     // Piernas: muslo, rodilla y pie. El pie apoyado se queda plano en el suelo
     // (compensa el giro del muslo y de la rodilla) salvo lo que suba el talón.
@@ -756,7 +771,9 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
           <mesh geometry={geos.shirtV} material={mats.shirt} />
           <mesh geometry={geos.satin} material={mats.satin} castShadow={!LITE} />
           {/* Pajarita de mariposa y su nudo, algo inclinada hacia delante. */}
-          <group position={[0, 0.568, jacketRadius(0.568) * FLAT + 0.04]} rotation={[-0.12, 0, 0]}>
+          {/* Pegada a la camisa, justo debajo del cuello (a 1,3 cm de la tela: antes
+              quedaba a 4 cm y de lado se veía flotando). */}
+          <group position={[0, 0.568, jacketRadius(0.568) * FLAT + 0.013]} rotation={[-0.12, 0, 0]}>
             {/* Sin sombra: el mapa de sombras la pintaba como una raya dentada en la camisa. */}
             <mesh geometry={geos.bow} material={mats.bow} />
             <mesh position={[0, 0, 0.007]} scale={[1, 1.35, 0.75]} material={mats.bow}>

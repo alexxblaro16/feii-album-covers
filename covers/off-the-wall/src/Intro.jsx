@@ -27,7 +27,7 @@ export default function Intro({ stage, entered, onEnter, lang }) {
         {/* Anillo de carga alrededor del vinilo. */}
         <div className="otw__intro-ring" aria-hidden="true" />
         <div className="otw__intro-vinyl" aria-hidden="true">
-          <div className="otw__intro-label" style={{ backgroundImage: `linear-gradient(rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.65)), url("${COVER_URL}")` }}>
+          <div className="otw__intro-label" style={{ backgroundImage: `linear-gradient(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.3)), url("${COVER_URL}")` }}>
             <span>Michael Jackson</span>
             <strong>OFF THE WALL</strong>
             <em>Epic · 1979</em>

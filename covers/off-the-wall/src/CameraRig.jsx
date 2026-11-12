@@ -9,16 +9,18 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Vector3 } from 'three';
+import { CatmullRomCurve3, Vector3 } from 'three';
 import { BOUNDS, COLLIDERS, MICHAEL, VIEWS, coverPosition } from './set.js';
 
-const WALK_SPEED = 1.7; // metros por segundo
+const WALK_SPEED = 2.0; // metros por segundo
 const RUN = 2.6; // multiplicador con Mayúsculas
 const LIFT_SPEED = 1.1; // subir y bajar, metros por segundo
 // Cuánto acerca o aleja cada pulsación de zoom (fracción de la distancia).
 const ZOOM_STEP = 0.18;
 // El punto al que se mira puede acercarse a la pared, pero no cruzarla.
 const WALL_LIMIT = BOUNDS.minZ - 0.2;
+// Altura máxima del punto al que se mira (las paredes del estudio miden 4,6 m).
+const LOOK_MAX = 4.2;
 const KEYS = {
   KeyW: 'f', ArrowUp: 'f',
   KeyS: 'b', ArrowDown: 'b',
@@ -47,16 +49,34 @@ function zoneOf(cam, target) {
 }
 
 /**
+ * Si la cámara está en el rincón del tocadiscos y del cuadro de los Jackson 5:
+ * cerca de la mesa y mirando hacia ella (solo ahí sale el menú del tocadiscos).
+ */
+function nearDeck(cam, target) {
+  const [dx, , dz] = VIEWS.deck.target;
+  const tx = dx - cam.x;
+  const tz = dz - cam.z;
+  const dist = Math.hypot(tx, tz);
+  if (dist > 2.45) return false;
+  const lx = target.x - cam.x;
+  const lz = target.z - cam.z;
+  return (lx * tx + lz * tz) / ((Math.hypot(lx, lz) || 1) * (dist || 1)) > 0.62;
+}
+
+/**
  * @param {{
  *   view: { name: string, at: number } | null,
  *   reduced: boolean,
  *   onZone: (zone: string) => void,
+ *   onDeck?: (near: boolean) => void,
  * }} props
  */
-export default function CameraRig({ view, reduced, onZone }) {
+export default function CameraRig({ view, reduced, onZone, onDeck }) {
+  const atDeck = useRef(false);
   const controls = useRef(null);
   const size = useThree((s) => s.size);
   const goal = useRef(null);
+  const tour = useRef(null);
   const pressed = useRef(new Set());
   const zone = useRef('');
   const running = useRef(false);
@@ -65,7 +85,7 @@ export default function CameraRig({ view, reduced, onZone }) {
   // Punto del suelo al que se ha pedido caminar (pulsando en él).
   const walkTo = useRef(/** @type {Vector3 | null} */ (null));
   // Vectores reutilizados: nada se crea dentro de useFrame.
-  const tmp = useRef({ fwd: new Vector3(), right: new Vector3(), move: new Vector3(), up: new Vector3(0, 1, 0) });
+  const tmp = useRef({ fwd: new Vector3(), right: new Vector3(), move: new Vector3(), up: new Vector3(0, 1, 0), vel: new Vector3(), want: new Vector3() });
 
   // Al pedir una vista, se fija el destino; useFrame hace el viaje.
   useEffect(() => {
@@ -120,6 +140,29 @@ export default function CameraRig({ view, reduced, onZone }) {
     const walk = (e) => {
       walkTo.current = new Vector3(...e.detail);
     };
+    // Recorrido de entrada: paradas { position, target, time } desde donde
+    // esté la cámara ahora. `null` lo corta.
+    const startTour = (e) => {
+      if (!e.detail || !controls.current) {
+        tour.current = null;
+        return;
+      }
+      const cam = controls.current.object;
+      goal.current = null;
+      // Si la primera parada es del segundo 0, la cámara empieza ya en ella;
+      // si no, sale volando desde donde esté.
+      const jump = e.detail[0].time === 0;
+      const from = jump ? [] : [{ position: cam.position.toArray(), target: controls.current.target.toArray() }];
+      const stops = [...from, ...e.detail];
+      tour.current = {
+        t: 0,
+        start: performance.now(),
+        times: [...(jump ? [] : [0]), ...e.detail.map((k) => k.time)],
+        path: new CatmullRomCurve3(stops.map((k) => new Vector3(...k.position))),
+        look: new CatmullRomCurve3(stops.map((k) => new Vector3(...k.target))),
+      };
+    };
+    window.addEventListener('otw-tour', startTour);
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
     window.addEventListener('blur', clear);
@@ -128,6 +171,7 @@ export default function CameraRig({ view, reduced, onZone }) {
     window.addEventListener('otw-goto', goto);
     window.addEventListener('otw-walk', walk);
     return () => {
+      window.removeEventListener('otw-tour', startTour);
       window.removeEventListener('otw-goto', goto);
       window.removeEventListener('otw-walk', walk);
       window.removeEventListener('keydown', down);
@@ -159,37 +203,64 @@ export default function CameraRig({ view, reduced, onZone }) {
       goal.current = { position, target };
     }
 
+    // 0b. Recorrido de entrada: la cámara sigue una curva suave que pasa por
+    // todas las paradas, sin detenerse en ninguna, mirando a otra curva.
+    if (tour.current) {
+      const tr = tour.current;
+      // Con el reloj real: si el equipo va lento, la cámara salta fotogramas
+      // pero no se retrasa respecto a los rótulos y la música.
+      tr.t = (performance.now() - tr.start) / 1000;
+      const last = tr.times.length - 1;
+      let i = 0;
+      while (i < last - 1 && tr.t > tr.times[i + 1]) i += 1;
+      let s = Math.max(0, Math.min(1, (tr.t - tr.times[i]) / (tr.times[i + 1] - tr.times[i])));
+      // Arranca y llega con suavidad; entre medias no frena.
+      if (i === 0) s **= 1.7;
+      if (i === last - 1) s = 1 - (1 - s) ** 1.7;
+      const u = (i + s) / last;
+      tr.path.getPoint(u, camera.position);
+      tr.look.getPoint(u, c.target);
+      if (tr.t >= tr.times[last]) tour.current = null;
+    }
+
     // 1. Viaje a una vista con nombre (salto directo si hay reducción de movimiento).
     if (goal.current) {
-      const k = reduced ? 1 : 1 - Math.exp(-dt * 3.2);
+      // Arranque suave: el vuelo coge velocidad en el primer medio segundo en
+      // vez de salir disparado, y frena solo al llegar.
+      const g = goal.current;
+      g.age = (g.age ?? 0) + dt;
+      const k = reduced ? 1 : (1 - Math.exp(-dt * 3.4)) * Math.min(1, g.age / 0.45);
       camera.position.lerp(goal.current.position, k);
       c.target.lerp(goal.current.target, k);
       if (camera.position.distanceTo(goal.current.position) < 0.01) goal.current = null;
     }
 
     // 2. Caminar: adelante/atrás según hacia dónde mira la cámara, sobre el suelo.
+    // Con inercia: la velocidad sube poco a poco al pulsar y se frena suave al
+    // soltar, en vez de arrancar y parar en seco (sin inercia si se pide menos
+    // movimiento).
+    const { vel, want } = tmp.current;
+    want.set(0, 0, 0);
     if (pressed.current.size) {
       camera.getWorldDirection(fwd);
       fwd.y = 0;
       fwd.normalize();
       right.crossVectors(fwd, up).normalize();
-      move.set(0, 0, 0);
-      if (pressed.current.has('f')) move.add(fwd);
-      if (pressed.current.has('b')) move.sub(fwd);
-      if (pressed.current.has('r')) move.add(right);
-      if (pressed.current.has('l')) move.sub(right);
-      if (move.lengthSq() > 0) {
-        move.normalize().multiplyScalar(WALK_SPEED * (running.current ? RUN : 1) * dt);
-        camera.position.add(move);
-        c.target.add(move);
-      }
+      if (pressed.current.has('f')) want.add(fwd);
+      if (pressed.current.has('b')) want.sub(fwd);
+      if (pressed.current.has('r')) want.add(right);
+      if (pressed.current.has('l')) want.sub(right);
+      if (want.lengthSq() > 0) want.normalize().multiplyScalar(WALK_SPEED * (running.current ? RUN : 1));
       // Subir (E) y bajar (Q): la cámara y el punto al que mira, juntos.
-      const lift = (pressed.current.has('u') ? 1 : 0) - (pressed.current.has('d') ? 1 : 0);
-      if (lift) {
-        camera.position.y += lift * LIFT_SPEED * dt;
-        c.target.y += lift * LIFT_SPEED * dt;
-      }
+      want.y = ((pressed.current.has('u') ? 1 : 0) - (pressed.current.has('d') ? 1 : 0)) * LIFT_SPEED;
     }
+    // Arranca algo más rápido de lo que frena: responde al momento y desliza al soltar.
+    vel.lerp(want, reduced ? 1 : 1 - Math.exp(-dt * (want.lengthSq() > 0 ? 7 : 5)));
+    if (vel.lengthSq() > 1e-5) {
+      move.copy(vel).multiplyScalar(dt);
+      camera.position.add(move);
+      c.target.add(move);
+    } else vel.set(0, 0, 0);
 
     // 2b. Zoom de los botones y de + y −: acerca o aleja hacia el punto mirado,
     // repartido en varios fotogramas para que sea suave.
@@ -206,6 +277,15 @@ export default function CameraRig({ view, reduced, onZone }) {
     const p = camera.position;
     p.x = Math.min(BOUNDS.maxX, Math.max(BOUNDS.minX, p.x));
     p.z = Math.min(BOUNDS.maxZ, Math.max(BOUNDS.minZ, p.z));
+    // Al mirar hacia arriba la cámara baja girando alrededor del punto mirado.
+    // Si toca el suelo, en vez de frenarse ahí sube el punto mirado lo mismo:
+    // así se puede seguir inclinando hasta ver los neones de lo alto de la pared.
+    // Y al revés: al mirar hacia abajo la cámara sube; si llega a su altura
+    // máxima, baja el punto mirado. (No al subir o bajar con Q y E.)
+    if (Math.abs(vel.y) < 0.01) {
+      if (p.y < BOUNDS.minY) c.target.y = Math.min(LOOK_MAX, c.target.y + (BOUNDS.minY - p.y));
+      if (p.y > BOUNDS.maxY) c.target.y = Math.max(0.2, c.target.y - (p.y - BOUNDS.maxY));
+    }
     p.y = Math.min(BOUNDS.maxY, Math.max(BOUNDS.minY, p.y));
     // ...ni dentro de Michael: se empuja la cámara hacia fuera de un círculo.
     const dx = p.x - MICHAEL.x;
@@ -232,7 +312,7 @@ export default function CameraRig({ view, reduced, onZone }) {
     const t = c.target;
     t.x = Math.min(BOUNDS.maxX, Math.max(BOUNDS.minX, t.x));
     t.z = Math.min(BOUNDS.maxZ, Math.max(WALL_LIMIT, t.z));
-    t.y = Math.min(2.6, Math.max(0.2, t.y));
+    t.y = Math.min(LOOK_MAX, Math.max(0.2, t.y));
     c.update();
 
     // 4. Zona: solo se avisa al cambiar, no en cada fotograma.
@@ -240,6 +320,11 @@ export default function CameraRig({ view, reduced, onZone }) {
     if (z !== zone.current) {
       zone.current = z;
       onZone(z);
+    }
+    const near = nearDeck(p, t);
+    if (near !== atDeck.current) {
+      atDeck.current = near;
+      onDeck?.(near);
     }
   });
 
@@ -253,11 +338,13 @@ export default function CameraRig({ view, reduced, onZone }) {
       dampingFactor={0.08}
       minDistance={0.35}
       maxDistance={10.5}
-      maxPolarAngle={1.53}
+      // Se puede mirar hacia arriba (hasta unos 50° sobre el horizonte).
+      maxPolarAngle={2.45}
       zoomToCursor
       zoomSpeed={0.9}
       rotateSpeed={0.7}
       onStart={() => {
+        tour.current = null;
         goal.current = null;
       }}
     />

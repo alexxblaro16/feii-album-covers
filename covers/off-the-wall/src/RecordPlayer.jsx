@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BoxGeometry, Color, CylinderGeometry, DoubleSide, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, RingGeometry, TextureLoader, Vector3 } from 'three';
+import { BoxGeometry, Color, CylinderGeometry, DoubleSide, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, RingGeometry, SphereGeometry, TextureLoader, Vector3 } from 'three';
 import { goTo } from './cameraEvents.js';
 import { VIEWS } from './set.js';
 import { COVER_URLS, createSleeves, setSleeveLabelSlot, sleeveGeometry, sleeveLabelGeometry } from './sleeves.js';
@@ -28,8 +28,9 @@ const SLEEVE_SPOTS = {
   abc: [0.2, 0.95, -0.16],
   xmas: [0.27, 0.76, 0.06],
   jacksons: [-0.2, 0.95, -0.21],
+  diana: [0.52, 0.77, -0.02],
 };
-const LABEL_SLOT = { abc: 0, xmas: 1, jacksons: 2, otw: 3 };
+const LABEL_SLOT = { abc: 0, xmas: 1, jacksons: 2, otw: 3, diana: 4 };
 
 /** Pieza colocada (posición y giro) lista para fundir con otras del mismo material. */
 function piece(geo, pos, rot = [0, 0, 0]) {
@@ -63,19 +64,84 @@ function vinylGeometry() {
   return fuse([disc, ...rings]);
 }
 
-/** Geometrías fijas por material: mesa de madera, tocadiscos, fundas y taza. */
-function buildParts() {
-  const legs = [];
-  for (const x of [-0.38, 0.38]) {
-    for (const z of [-0.22, 0.22]) legs.push(piece(new CylinderGeometry(0.02, 0.02, 0.7, 8), [x, 0.35, z]));
+/** Color liso en los vértices (la mesa lleva varios tonos en una sola malla). */
+function tint(geo, hex) {
+  const color = new Color(hex);
+  const values = new Float32Array(geo.attributes.position.count * 3);
+  for (let i = 0; i < values.length; i += 3) {
+    values[i] = color.r;
+    values[i + 1] = color.g;
+    values[i + 2] = color.b;
   }
-  return {
-    // Mesa y, encima, la caja de madera de nogal del tocadiscos (de los setenta).
-    wood: fuse([
-      piece(new BoxGeometry(0.84, 0.04, 0.52), [0, 0.72, 0]),
-      ...legs,
-      piece(new BoxGeometry(0.44, 0.06, 0.35), [-0.12, 0.77, 0]),
+  geo.setAttribute('color', new Float32BufferAttribute(values, 3));
+  return geo;
+}
+
+// Lomos de los discos guardados en la balda de abajo.
+const SPINES = ['#8a2420', '#d9b44a', '#1f4f7a', '#e8e2d2', '#2f7a3a', '#b4553a', '#3a2a5c', '#c9962a', '#141416', '#a33a6a'];
+
+/**
+ * Mueble del tocadiscos, de los setenta: tablero de nogal con canto, faldón
+ * con dos cajones y tiradores de latón, patas cónicas abiertas con puntera de
+ * latón y una balda abajo con una fila de discos. Todo en una malla (los
+ * tonos van en el color de los vértices), más la caja de nogal del tocadiscos.
+ */
+function furniture() {
+  const WALNUT = '#74502f';
+  const DARK = '#4f331f';
+  const BRASS = '#c09a45';
+  const cx = 0.13;
+  const parts = [
+    // Tablero (la cara de arriba queda a 0,74 m) y su canto más oscuro.
+    tint(piece(new BoxGeometry(1.14, 0.03, 0.56), [cx, 0.725, 0]), WALNUT),
+    tint(piece(new BoxGeometry(1.15, 0.022, 0.57), [cx, 0.701, 0]), DARK),
+    // Faldón con dos cajones y sus tiradores.
+    tint(piece(new BoxGeometry(1.02, 0.1, 0.46), [cx, 0.64, 0]), DARK),
+    ...[-0.255, 0.255].flatMap((x) => [
+      tint(piece(new BoxGeometry(0.47, 0.076, 0.014), [cx + x, 0.64, 0.234]), WALNUT),
+      tint(piece(new SphereGeometry(0.013, 12, 8), [cx + x, 0.64, 0.25]), BRASS),
     ]),
+    // Balda de abajo.
+    tint(piece(new BoxGeometry(0.96, 0.022, 0.38), [cx, 0.24, 0]), WALNUT),
+    // Caja de nogal del tocadiscos.
+    tint(piece(new BoxGeometry(0.44, 0.06, 0.35), [-0.12, 0.77, 0]), '#6e4a2c'),
+  ];
+  // Patas cónicas, abiertas hacia fuera, con puntera de latón.
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      // La pata sale de la esquina del faldón y baja abriéndose hacia fuera;
+      // la puntera sigue su misma línea hasta el suelo.
+      const rot = [-sz * 0.07, 0, sx * 0.09];
+      const x = cx + sx * 0.47;
+      const z = sz * 0.2;
+      parts.push(
+        tint(piece(new CylinderGeometry(0.03, 0.016, 0.56, 12), [x + sx * 0.025, 0.34, z + sz * 0.02], rot), DARK),
+        tint(piece(new CylinderGeometry(0.017, 0.013, 0.07, 12), [x + sx * 0.053, 0.033, z + sz * 0.041], rot), BRASS),
+      );
+    }
+  }
+  // Discos de pie en la balda: cada lomo de un color y un poco ladeado.
+  for (let i = 0; i < 34; i += 1) {
+    const n = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
+    parts.push(
+      tint(
+        piece(new BoxGeometry(0.009, 0.31, 0.31), [-0.2 + i * 0.0135, 0.406, -0.01 + (n - 0.5) * 0.02], [0, 0, (n - 0.5) * 0.05]),
+        SPINES[Math.floor(n * 97) % SPINES.length],
+      ),
+    );
+  }
+  // Y un par de discos apoyados contra la fila, torcidos.
+  parts.push(
+    tint(piece(new BoxGeometry(0.009, 0.31, 0.31), [0.3, 0.4, 0], [0, 0, -0.22]), '#d9b44a'),
+    tint(piece(new BoxGeometry(0.009, 0.31, 0.31), [0.335, 0.397, 0.01], [0, 0, -0.3]), '#1f4f7a'),
+  );
+  return fuse(parts);
+}
+
+/** Geometrías fijas por material: mueble, tocadiscos, fundas y taza. */
+function buildParts() {
+  return {
+    wood: furniture(),
     // Placa negra de arriba, soporte del brazo, mandos y patas de goma.
     deck: fuse([
       piece(new BoxGeometry(0.43, 0.018, 0.34), [-0.12, 0.809, 0]),
@@ -104,6 +170,9 @@ function buildParts() {
     jacksons: piece(sleeveGeometry(2), [-0.2, 0.89, -0.215], [-0.28, 0.1, 0]),
     // Y el propio Off the Wall en físico, tumbado en la esquina de la mesa.
     otw: piece(sleeveGeometry(3), [-0.27, 0.745, 0.17], [-Math.PI / 2, 0, -0.25]),
+    // Diana Ross Presents The Jackson 5 (1969), tumbado en el extremo derecho,
+    // torcido y un poco encima del Christmas Album.
+    diana: piece(sleeveGeometry(4), [0.52, 0.75, -0.02], [-Math.PI / 2, 0, -0.22]),
     vinyl: vinylGeometry(),
     label: sleeveLabelGeometry(3),
     // Brazo: tubo fino, cabezal al final y contrapeso detrás del pivote.
@@ -133,7 +202,7 @@ export default function RecordPlayer({ playing, record, records, onRecord, onOpe
     () => ({
       geo: buildParts(),
       mats: {
-        wood: new MeshStandardMaterial({ color: '#6e4a2c', roughness: 0.7 }),
+        wood: new MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }),
         deck: new MeshStandardMaterial({ color: '#1d1d20', roughness: 0.4, metalness: 0.3 }),
         light: new MeshStandardMaterial({ color: '#ece7dd', roughness: 0.8 }),
         sleeve: new MeshStandardMaterial({ map: createSleeves(covers), roughness: 0.75, side: DoubleSide }),
@@ -209,6 +278,7 @@ export default function RecordPlayer({ playing, record, records, onRecord, onOpe
         ['xmas', res.geo.xmas],
         ['jacksons', res.geo.jacksons],
         ['otw', res.geo.otw],
+        ['diana', res.geo.diana],
       ].map(([key, geo]) => (
         <mesh
           key={key}

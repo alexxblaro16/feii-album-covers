@@ -16,6 +16,7 @@ const ALBUM_ID = 186166282;
  */
 export const RECORDS = {
   otw: { id: ALBUM_ID, title: 'Off the Wall', artist: 'Michael Jackson', year: 1979, label: '#8a2420' },
+  diana: { id: 1443221837, title: 'Diana Ross Presents The Jackson 5', artist: 'Jackson 5', year: 1969, label: '#7a3fa0', groove: { bpm: 100, feel: 'funk' } },
   abc: { id: 1442885957, title: 'ABC', artist: 'Jackson 5', year: 1970, label: '#2a7bc9', groove: { bpm: 112, feel: 'funk' } },
   xmas: { id: 1452949481, title: 'Christmas Album', artist: 'Jackson 5', year: 1970, label: '#2f7a3a', groove: { bpm: 96, feel: 'smooth' } },
   jacksons: { id: 200605281, title: 'The Jacksons', artist: 'The Jacksons', year: 1976, label: '#c9962a', groove: { bpm: 118, feel: 'disco' } },

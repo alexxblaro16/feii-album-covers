@@ -17,8 +17,8 @@ import { shotRig } from './shotRig.js';
 // del pecho de Michael.
 const W = 1.05;
 const H = 2.3;
-// Marco fino, como en la foto.
-const BAR = 0.025;
+// Marco muy fino, como en la foto: apenas un perfil de metal.
+const BAR = 0.011;
 const LEFT = 1.06;
 const BOTTOM = 0.97;
 const POS = [LEFT + W / 2, BOTTOM + H / 2];
@@ -28,8 +28,25 @@ const HALF_POS = [0.54 + W / 2, 0.8 + H / 2];
 // Cara delantera de los ladrillos.
 const FRONT = WALL.z + 0.11;
 
-// Cielo de la ventana, de arriba abajo: azul, blanco y verde al fondo.
-const SKY = ['#3a7cc8', '#5f9fdb', '#9cc6e2', '#a6cf9c', '#6aac63'];
+// Cielo de la ventana, de arriba abajo: [altura (0 arriba, 1 abajo), color].
+// Azul casi todo el alto, que se aclara hacia el horizonte; el verde solo
+// asoma, difuminado, en el último cuarto.
+const SKY = [
+  [0, '#3a7cc8'],
+  [0.35, '#5f9fdb'],
+  [0.62, '#8fc0e4'],
+  [0.78, '#b4d6e2'],
+  [0.9, '#a9d0a2'],
+  [1, '#6aac63'],
+];
+
+/** Nubes tenues: 0 donde no hay y hasta 1 en el centro de una nube (ruido suave y estable). */
+function cloud(x, y) {
+  const n =
+    Math.sin(x * 5.3 + y * 1.7 + 0.6) * Math.cos(y * 6.1 - x * 2.2 + 1.3) +
+    0.5 * Math.sin(x * 11.7 - y * 4.3 + 2.1) * Math.cos(y * 13.3 + x * 3.1);
+  return Math.max(0, Math.min(1, (n - 0.25) / 0.9));
+}
 
 /** Marco fino: cuatro listones fundidos en uno. */
 function frameGeometry() {
@@ -51,18 +68,23 @@ function frameGeometry() {
 
 /** Cristal con el degradado del cielo en los vértices. */
 function skyGeometry() {
-  const rows = SKY.length * 3;
-  const g = new PlaneGeometry(W, H, 1, rows);
+  // Malla fina: las nubes también van en los colores de los vértices.
+  const g = new PlaneGeometry(W, H, 28, 60);
   const pos = g.attributes.position;
   const colors = [];
   const c = new Color();
-  const stops = SKY.map((s) => new Color(s));
+  const white = new Color('#f4f8fb');
+  const stops = SKY.map(([at, hex]) => [at, new Color(hex)]);
   for (let i = 0; i < pos.count; i += 1) {
     // 0 arriba, 1 abajo.
     const t = Math.max(0, Math.min(1, (H / 2 - pos.getY(i)) / H));
-    const f = t * (stops.length - 1);
-    const a = Math.min(stops.length - 2, Math.floor(f));
-    c.copy(stops[a]).lerp(stops[a + 1], f - a);
+    let a = 0;
+    while (a < stops.length - 2 && t > stops[a + 1][0]) a += 1;
+    const [t0, c0] = stops[a];
+    const [t1, c1] = stops[a + 1];
+    c.copy(c0).lerp(c1, Math.max(0, Math.min(1, (t - t0) / (t1 - t0))));
+    // Nubes que casi no se ven, solo en la parte azul (se apagan hacia el verde).
+    c.lerp(white, cloud(pos.getX(i), pos.getY(i)) * 0.22 * (1 - Math.max(0, Math.min(1, (t - 0.55) / 0.25))));
     colors.push(c.r, c.g, c.b);
   }
   g.setAttribute('color', new Float32BufferAttribute(colors, 3));
@@ -102,8 +124,9 @@ export default function WallWindow() {
 
   return (
     <group ref={group} position={[POS[0], POS[1], FRONT]}>
-      {/* El cristal queda un poco hundido respecto a los ladrillos. */}
-      <mesh geometry={res.glass} material={res.pane} position={[0, 0, 0.004]} />
+      {/* El cristal va un par de centímetros por delante de la pared: así no
+          asoma ninguna esquina de ladrillo a través del cielo. */}
+      <mesh geometry={res.glass} material={res.pane} position={[0, 0, 0.022]} />
       <mesh geometry={res.frame} material={res.paint} receiveShadow />
     </group>
   );

@@ -22,11 +22,16 @@ export const COLLIDERS = [
   [-3.7, 3.3, 0.35],
   [-2.75, 6.1, 0.75],
   [-1.55, 6.3, 0.42],
-  [2.55, 4.85, 0.55],
+  [2.58, 4.98, 0.62],
   [2.0, 7.7, 0.5],
   [-2.7, 8.3, 0.5],
   [-0.95, 4.25, 0.3],
   [2.6, 6.4, 0.45],
+  // Rincón Studio 54: la mesa de las copas y los postes del cordón (Disco54.jsx).
+  [3.45, 9.55, 0.5],
+  [2.45, 9.7, 0.22],
+  [3.1, 8.45, 0.22],
+  [3.95, 8.35, 0.22],
 ];
 
 /** Donde está Michael (centro de los pies) y a qué altura mira la cámara. */
@@ -49,7 +54,8 @@ export const VIEWS = {
   monitor: { label: 'El monitor', position: [-1.85, 1.42, 5.3], target: [-0.95, 1.3, 4.25] },
   // Delante del cuadro de los Jackson 5 y del tocadiscos, en la pared derecha.
   // El tocadiscos y sus discos, en la mesa junto a la pared derecha.
-  deck: { label: 'Tocadiscos', position: [1.15, 1.5, 5.55], target: [2.5, 0.95, 4.85] },
+  // Un poco más lejos y centrada en la mesa, para que entren los cinco discos.
+  deck: { label: 'Tocadiscos', position: [0.63, 1.68, 6.05], target: [2.55, 0.9, 5.05] },
   j5: { label: 'Los Jackson 5', position: [0.95, 1.6, 4.75], target: [3.9, 1.45, 4.68] },
 };
 

@@ -18,6 +18,8 @@ import ShotCamera from './ShotCamera.jsx';
 import RecordPlayer from './RecordPlayer.jsx';
 import Jackson5 from './Jackson5.jsx';
 import Hotspots from './Hotspots.jsx';
+import NeonSongs from './NeonSongs.jsx';
+import Disco54 from './Disco54.jsx';
 import { walkTo } from './cameraEvents.js';
 
 const BACKGROUND = '#120c0a';
@@ -61,6 +63,7 @@ const StudioEnvironment = memo(function StudioEnvironment() {
  *   level: () => number,
  *   reduced: boolean,
  *   onZone: (zone: string) => void,
+ *   onDeck: (near: boolean) => void,
  *   onStep: () => void,
  *   onHover: (on: boolean, name?: string) => void,
  *   onInspect: (text: string, id: string) => void,
@@ -70,10 +73,14 @@ const StudioEnvironment = memo(function StudioEnvironment() {
  *   records: object,
  *   onRecord: (key: string) => void,
  *   onOpenDeck: () => void,
+ *   titles: string[],
+ *   song: number,
+ *   onSong: (index: number) => void,
+ *   onSign: () => void,
  *   onShot: (rect: { x: number, y: number, side: number }) => void,
  * }} props
  */
-export default function Scene({ view, move, flashAt, groove, playing, level, reduced, onZone, onStep, onHover, onInspect, lang, shotRequest, onShot, record, records, onRecord, onOpenDeck }) {
+export default function Scene({ view, move, flashAt, groove, playing, level, reduced, onZone, onDeck, onStep, onHover, onInspect, lang, shotRequest, onShot, record, records, onRecord, onOpenDeck, titles, song, onSong, onSign }) {
   return (
     <>
       <color attach="background" args={[BACKGROUND]} />
@@ -132,7 +139,10 @@ export default function Scene({ view, move, flashAt, groove, playing, level, red
       <LiveMonitor />
       <SpotifyMirror onHover={onHover} lang={lang} />
       <Jackson5 />
+      <Disco54 reduced={reduced} playing={playing} groove={groove} level={level} />
       <Hotspots onHover={onHover} onInspect={onInspect} lang={lang} />
+      {/* Después de las cajas invisibles: los neones se pulsan por delante de ellas. */}
+      <NeonSongs titles={titles} current={song} level={level} reduced={reduced} onPick={onSong} onSign={onSign} onHover={onHover} lang={lang} />
       <RecordPlayer
         playing={playing}
         record={record}
@@ -142,7 +152,7 @@ export default function Scene({ view, move, flashAt, groove, playing, level, red
         onHover={onHover}
         lang={lang}
       />
-      <CameraRig view={view} reduced={reduced} onZone={onZone} />
+      <CameraRig view={view} reduced={reduced} onZone={onZone} onDeck={onDeck} />
       <ShotCamera request={shotRequest} onShot={onShot} />
     </>
   );

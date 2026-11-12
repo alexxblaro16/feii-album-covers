@@ -20,10 +20,56 @@ import Intro from './Intro.jsx';
 import Ready from './Ready.jsx';
 import { LANGS, STR, initialLang, saveLang } from './i18n.js';
 import { FOV, VIEWS } from './set.js';
+import { tour as cameraTour } from './cameraEvents.js';
+
+/**
+ * Recorrido de entrada: paradas de la cámara (posición, punto al que mira y
+ * segundo en el que pasa por ahí). Va por encima de 2 m, donde el atrezo no
+ * empuja la cámara, y acaba con un acercamiento a Michael.
+ */
+// Es un solo barrido de derecha a izquierda (la cámara no da bandazos): el
+// rincón de Studio 54, el tocadiscos, Michael al fondo, la boa, los neones y,
+// para acabar, hasta Michael.
+const TOUR = [
+  // Empieza ya delante de la pared del fondo (`time: 0` = sin vuelo previo),
+  // con las cinco canciones de la cara A enteras en pantalla...
+  { time: 0, position: [0.7, 2.3, 2.6], target: [0.6, 2.6, 10.4] },
+  // ...y se acerca despacio, sin dejar de verlas todas.
+  { time: 3.2, position: [0.7, 2.3, 3.6], target: [0.6, 2.6, 10.4] },
+  // El letrero de Studio 54, visto desde arriba: queda entero por encima de la bola.
+  { time: 5.8, position: [1.4, 3.0, 7.2], target: [3.42, 3.75, 10.4] },
+  // El tocadiscos y los discos de los Jackson 5.
+  { time: 8.2, position: [0.8, 2.1, 6.4], target: [2.6, 0.9, 5.0] },
+  // Michael, al fondo del plató.
+  { time: 10.2, position: [0.2, 2.1, 6.6], target: [0.1, 1.2, 0] },
+  // Muscles, enroscada en la silla.
+  { time: 12.4, position: [-0.4, 2.1, 7.3], target: [-1.55, 0.7, 6.3] },
+  // Las cinco canciones de la cara B, en la pared izquierda, desde lejos
+  // para que entren todas.
+  { time: 15.0, position: [3.0, 2.5, 6.0], target: [-4.2, 2.7, 6.1] },
+  // Hacia Michael...
+  { time: 17.2, position: [-1.0, 2.05, 3.4], target: [0.1, 1.25, 0] },
+  // ...y de cerca.
+  { time: 19.4, position: [0.3, 1.5, 1.9], target: [0.05, 1.35, 0] },
+];
+/** Segundo en el que aparece cada rótulo del recorrido (i18n `tour`). */
+const TOUR_CAPTIONS = [0.8, 4.2, 6.8, 9.0, 11.2, 13.6];
+/** Cuándo sale la fecha (con Michael ya cerca) y cuándo acaba todo, en ms. */
+const TOUR_DATE = 17800;
+const TOUR_END = 21600;
 import './route.css';
 
 const SCOPE = 'route-off-the-wall';
-const FONTS = 'https://fonts.googleapis.com/css2?family=Yellowtail&family=Oswald:wght@400;600&family=Architects+Daughter&display=swap';
+const FONTS = 'https://fonts.googleapis.com/css2?family=Yellowtail&family=Oswald:wght@400;600&family=Architects+Daughter&family=Monoton&display=swap';
+/**
+ * Fotos de las fichas (se enlazan, no se copian al repositorio): Michael con
+ * Muscles, su boa, y la fachada de Studio 54 (Wikimedia Commons, CC BY-SA 3.0).
+ */
+const CARDS = {
+  muscles:
+    'https://preview.redd.it/michael-with-muscles-his-pet-snake-v0-joz3ravdq66f1.jpg?width=495&format=pjpg&auto=webp&s=77d942cf450c25d9a240171a294dfa6cb55885bc',
+  studio54: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/54-ny.jpg/960px-54-ny.jpg',
+};
 const DPR = [1, 1.5];
 /** Mi perfil de GitHub: lo enlaza la firma de la foto. */
 const GITHUB = 'https://github.com/alexxblaro16';
@@ -44,6 +90,7 @@ const CHOREO = /** @type {(keyof typeof MOVES)[]} */ (['spin', 'glide', 'kick', 
 const SHOUTS = ['hee', 'ow', 'hoo', 'snap'];
 
 // Altura del reproductor de Spotify con la lista de canciones.
+// Reproductor de Spotify con su portada y su lista de canciones.
 const SPOTIFY_HEIGHT = 352;
 
 /** Cruceta táctil: dirección que entiende CameraRig, etiqueta y símbolo. */
@@ -86,6 +133,9 @@ export default function Route() {
   // De dónde sale la música: Spotify (por defecto) o los fragmentos de Apple.
   const [source, setSource] = useState(/** @type {'spotify' | 'apple'} */ ('spotify'));
   const [spotifyOn, setSpotifyOn] = useState(false);
+  // Canción del disco que suena en Spotify (−1 si no se sabe) y por dónde va (0..1).
+  const [spotifyTrack, setSpotifyTrack] = useState(-1);
+  const [spotifyProgress, setSpotifyProgress] = useState(0);
   const [spotifyState, setSpotifyState] = useState(/** @type {'loading' | 'ready' | 'error'} */ ('loading'));
   const [flashAt, setFlashAt] = useState(/** @type {number | null} */ (null));
   const [flashing, setFlashing] = useState(false);
@@ -94,10 +144,26 @@ export default function Route() {
   const [record, setRecord] = useState('otw');
   const [recordTracks, setRecordTracks] = useState(/** @type {string[]} */ ([]));
   const songs = record === 'otw' ? TRACKS : recordTracks;
-  // Submenú del tocadiscos (secundario: aparte del reproductor principal) y la
-  // flecha «Ir al tocadiscos» que sale al ver el cuadro de los Jackson 5.
+  // Submenú del tocadiscos (secundario: aparte del reproductor principal). Solo
+  // sale en el rincón del tocadiscos y del cuadro de los Jackson 5 (`atDeck`):
+  // se abre al llegar y desaparece al irse, para no estorbar en el resto del
+  // plató. Si se cierra con la ×, queda el botón «Ir al tocadiscos».
   const [deckOpen, setDeckOpen] = useState(false);
-  const [deckArrow, setDeckArrow] = useState(false);
+  const [atDeck, setAtDeck] = useState(false);
+  // Ficha con foto: la de Michael con Muscles (al pulsar la boa de la silla) o
+  // la de Studio 54 (al pulsar su rótulo de neón). Se cierra con la ×,
+  // pulsando fuera o con Escape.
+  const [card, setCard] = useState(/** @type {keyof typeof CARDS | null} */ (null));
+  useEffect(() => {
+    if (!card) return undefined;
+    const onKey = (e) => e.key === 'Escape' && setCard(null);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [card]);
+  const onDeck = useCallback((near) => {
+    setAtDeck(near);
+    setDeckOpen(near);
+  }, []);
   const [progress, setProgress] = useState(0);
   const [hovered, setHovered] = useState(false);
   // Nombre del objeto bajo el puntero (se enseña junto al cursor).
@@ -105,9 +171,11 @@ export default function Route() {
   const hintEl = useRef(/** @type {HTMLDivElement | null} */ (null));
   const [budget, setBudget] = useState(null);
   // En el móvil el panel empieza plegado para dejar ver a Michael.
-  const [panelOpen, setPanelOpen] = useState(() => !window.matchMedia('(max-width: 720px)').matches);
+  // Al entrar todo está guardado (panel y reproductor plegados): se ve limpia
+  // la foto de la portada y cada cosa se abre con su botón.
+  const [panelOpen, setPanelOpen] = useState(false);
   // Reproductor del disco: desplegado en el ordenador, plegado en el móvil.
-  const [musicOpen, setMusicOpen] = useState(() => !window.matchMedia('(max-width: 720px)').matches);
+  const [musicOpen, setMusicOpen] = useState(false);
   const [notice, setNotice] = useState('');
   // Última foto hecha: dirección local de la imagen (se libera al salir o al hacer otra).
   // Última foto: dirección local del PNG y si es entera o de medio cuerpo.
@@ -162,6 +230,20 @@ export default function Route() {
     document.body.style.cursor = hovered ? 'pointer' : 'auto';
   }, [hovered]);
 
+  // Si Spotify empieza a sonar (siempre es Off the Wall) y en el plato había
+  // otro disco, el tocadiscos vuelve a Off the Wall: lo que gira es lo que suena.
+  const recordNow = useRef(record);
+  useEffect(() => {
+    recordNow.current = record;
+  }, [record]);
+  useEffect(() => {
+    if (!spotifyOn || recordNow.current === 'otw') return;
+    music.current?.stop();
+    music.current?.setQueue(null);
+    setRecord('otw');
+    setRecordTracks([]);
+  }, [spotifyOn]);
+
   // La etiqueta sigue al cursor sin volver a pintar React en cada movimiento.
   useEffect(() => {
     const onMove = (e) => {
@@ -188,11 +270,7 @@ export default function Route() {
   // `at` cuenta las peticiones: repetir la misma vista vuelve a llevar la cámara.
   const goTo = (name) => {
     setView((v) => ({ name, at: (v?.at ?? 0) + 1 }));
-    if (name === 'j5') setDeckArrow(true);
-    if (name === 'deck') {
-      setDeckArrow(false);
-      setDeckOpen(true);
-    }
+    if (name === 'deck') setDeckOpen(true);
   };
 
   // Pantalla de entrada: fase de carga (0 lienzo, 1 letras, 2 fotogramas, 3
@@ -209,18 +287,69 @@ export default function Route() {
   }, [advance]);
   // Al entrar sale la fecha del disco unos segundos, mientras la cámara vuela.
   const [showDate, setShowDate] = useState(false);
+  // Al entrar, un mini recorrido por el plató: los neones y la boa, el rincón
+  // de la bola y el tocadiscos, y un acercamiento a Michael, donde sale la
+  // fecha; después la cámara se retira al encuadre de la portada. Cualquier
+  // gesto (ratón, dedo, rueda o tecla) lo corta y deja la cámara al visitante.
+  // Es una secuencia de cine: la cámara sigue una curva continua (sin parones),
+  // la pantalla se queda en formato panorámico con todo lo demás escondido,
+  // suena «Don't Stop 'Til You Get Enough» y cada parada lleva su rótulo.
+  const tourTimers = useRef(/** @type {number[]} */ ([]));
+  const [touring, setTouring] = useState(false);
+  const touringNow = useRef(false);
+  const [caption, setCaption] = useState('');
+  const endTour = useCallback(() => {
+    if (!touringNow.current) return;
+    touringNow.current = false;
+    tourTimers.current.forEach((id) => window.clearTimeout(id));
+    tourTimers.current = [];
+    cameraTour(null);
+    setTouring(false);
+    setCaption('');
+    setView((v) => ({ name: 'cover', at: (v?.at ?? 0) + 1 }));
+  }, []);
   const enter = () => {
     setEntered(true);
-    goTo('cover');
-    setShowDate(true);
-    later(() => setShowDate(false), 3600);
+    const date = () => {
+      setShowDate(true);
+      later(() => setShowDate(false), 3600);
+    };
+    if (reduced) {
+      goTo('cover');
+      date();
+      return;
+    }
+    const at = (ms, fn) => {
+      const id = window.setTimeout(fn, ms);
+      tourTimers.current.push(id);
+      timers.current.push(id);
+    };
+    touringNow.current = true;
+    setTouring(true);
+    cameraTour(TOUR);
+    // La música entra con el recorrido (el clic en «Entrar» da permiso para
+    // sonar): un fragmento, sin encadenar el siguiente.
+    music.current?.setAutoNext(false);
+    music.current?.play(0);
+    T.tour.forEach((text, i) => at(TOUR_CAPTIONS[i] * 1000, () => setCaption(text)));
+    at(TOUR_DATE, () => {
+      setCaption('');
+      date();
+    });
+    at(TOUR_END, endTour);
   };
+  useEffect(() => {
+    if (!entered) return undefined;
+    const events = ['pointerdown', 'wheel', 'keydown'];
+    events.forEach((name) => window.addEventListener(name, endTour, { passive: true }));
+    return () => events.forEach((name) => window.removeEventListener(name, endTour));
+  }, [entered, endTour]);
 
   // Reproductor de Spotify: se monta al entrar y se destruye al salir.
   useEffect(() => {
     let alive = true;
     let sp = null;
-    createSpotify(spotifyHost.current, { onPlaying: setSpotifyOn, height: SPOTIFY_HEIGHT })
+    createSpotify(spotifyHost.current, { onPlaying: setSpotifyOn, onTrack: setSpotifyTrack, onProgress: setSpotifyProgress, height: SPOTIFY_HEIGHT })
       .then((c) => {
         if (!alive) {
           c.dispose();
@@ -281,8 +410,20 @@ export default function Route() {
   const playing = track >= 0 || spotifyOn;
   // Ritmo del baile de fondo: el de la canción de Apple que suena o, con
   // Spotify (que no dice qué canción es), el tempo medio del disco.
-  const nowPlaying = track >= 0 ? songs[track] ?? '' : spotifyOn ? 'Off the Wall · Spotify' : 'Off the Wall · 1979';
-  const groove = track >= 0 ? (record === 'otw' ? TRACK_GROOVES[track] : RECORDS[record].groove) : spotifyOn ? { bpm: 118, feel: 'disco' } : null;
+  // Canción de Off the Wall que suena, venga de Apple o de Spotify (−1: ninguna
+  // o no se sabe). La usan la lista, los neones y el baile.
+  const song = track >= 0 ? (record === 'otw' ? track : -1) : spotifyOn ? spotifyTrack : -1;
+  const songProgress = track >= 0 ? progress : spotifyProgress;
+  const nowPlaying =
+    track >= 0 ? songs[track] ?? '' : spotifyOn ? (spotifyTrack >= 0 ? TRACKS[spotifyTrack] : 'Off the Wall · Spotify') : 'Off the Wall · 1979';
+  const groove =
+    track >= 0
+      ? record === 'otw'
+        ? TRACK_GROOVES[track]
+        : RECORDS[record].groove
+      : spotifyOn
+        ? TRACK_GROOVES[spotifyTrack] ?? { bpm: 118, feel: 'disco' }
+        : null;
 
   // Con música, Michael baila de fondo al ritmo (Michael.jsx) y, de vez en
   // cuando, mete uno de sus pasos (sin gritos, para no tapar la canción).
@@ -399,6 +540,25 @@ export default function Route() {
     playTrack(i);
   };
 
+  // Elegir una canción de Off the Wall (en la lista o en su neón): suena por
+  // donde esté puesta la música, Spotify (entera, con sesión) o Apple (30 s).
+  // Pulsar la que ya suena la para.
+  const playSong = (i) => {
+    const sp = spotify.current;
+    if (source !== 'spotify' || !sp) {
+      playMain(i);
+      return;
+    }
+    if (spotifyOn && spotifyTrack === i) {
+      sp.pause();
+      setNotice(T.stopped);
+      return;
+    }
+    music.current?.stop();
+    sp.playTrack(i);
+    setNotice(T.nowSpotify(TRACKS[i]));
+  };
+
   const playTrack = async (i) => {
     if (!music.current) return;
     if (track === i) {
@@ -407,6 +567,8 @@ export default function Route() {
       return;
     }
     spotify.current?.pause();
+    // Al elegir canción, los fragmentos vuelven a encadenarse como el disco.
+    music.current.setAutoNext(true);
     const ok = await music.current.play(i);
     setNotice(ok ? T.nowSnippet(songs[i]) : T.loadFail);
   };
@@ -449,6 +611,12 @@ export default function Route() {
   };
 
   const toggleAlbum = () => {
+    // Si suena un fragmento de Apple (por ejemplo, el de la entrada), se para ese.
+    if (track >= 0) {
+      music.current?.stop();
+      setNotice(T.stopped);
+      return;
+    }
     if (source === 'spotify' && spotify.current) {
       spotify.current.toggle();
       setNotice(spotifyOn ? T.stopped : T.spotifyOn);
@@ -488,7 +656,7 @@ export default function Route() {
   const initial = useMemo(() => [0, 2.0, 9.6], []);
 
   return (
-    <div className={`otw ${zone === 'cover' ? 'otw--framed' : ''}`}>
+    <div className={`otw ${zone === 'cover' && !touring ? 'otw--framed' : ''} ${touring ? 'otw--tour' : ''}`}>
       <Canvas
         className="otw__canvas"
         shadows="percentage"
@@ -515,19 +683,21 @@ export default function Route() {
             onStep={step}
             onHover={hover}
             lang={lang}
+            onDeck={onDeck}
             onInspect={(text, id) => {
               setNotice(text);
-              if (id === 'j5') setDeckArrow(true);
+              if (id === 'muscles') setCard('muscles');
             }}
+            onSign={() => setCard('studio54')}
+            titles={TRACKS}
+            song={song}
+            onSong={playSong}
             shotRequest={shotRequest}
             onShot={onShot}
             record={record}
             records={RECORDS}
             onRecord={putRecord}
-            onOpenDeck={() => {
-              setDeckOpen(true);
-              setDeckArrow(false);
-            }}
+            onOpenDeck={() => setDeckOpen(true)}
           />
           <Ready onReady={() => advance(3)} />
         </Suspense>
@@ -536,6 +706,21 @@ export default function Route() {
 
       {/* Encuadre cuadrado de la portada: aparece cuando se mira de frente. */}
       <Intro stage={stage} entered={entered} onEnter={enter} lang={lang} />
+      {/* Recorrido de entrada: franjas de cine, el rótulo de cada parada y «Saltar». */}
+      <div className="otw__cine otw__cine--top" aria-hidden="true" />
+      <div className="otw__cine otw__cine--bottom" aria-hidden="true" />
+      {touring ? (
+        <>
+          {caption ? (
+            <p key={caption} className="otw__tour-caption" role="status">
+              {caption}
+            </p>
+          ) : null}
+          <button type="button" className="otw__tour-skip" onClick={endTour}>
+            {T.skip}
+          </button>
+        </>
+      ) : null}
       {showDate ? (
         <div className="otw__date" role="status">
           <span>Epic Records</span>
@@ -584,7 +769,7 @@ export default function Route() {
       </div>
 
       {/* Submenú del tocadiscos: los discos de la mesa, aparte de la música principal. */}
-      {deckOpen ? (
+      {deckOpen && atDeck && !touring ? (
         <div className="otw__deck" role="dialog" aria-label={T.deckDialog}>
           <div className="otw__deck-head">
             <strong>{T.deck}</strong>
@@ -611,7 +796,24 @@ export default function Route() {
           <p>{T.deckHelp}</p>
         </div>
       ) : null}
-      {deckArrow && !deckOpen ? (
+      {/* Ficha con foto (Muscles o Studio 54). Las fotos no se guardan en el
+          repositorio: se enseñan desde su dirección original. */}
+      {card ? (
+        <div className="otw__photo" role="dialog" aria-modal="true" aria-label={T.cards[card].title} onClick={() => setCard(null)}>
+          <figure onClick={(e) => e.stopPropagation()}>
+            <button type="button" aria-label={T.musclesClose} onClick={() => setCard(null)} autoFocus>
+              ×
+            </button>
+            <img src={CARDS[card]} alt={T.cards[card].alt} referrerPolicy="no-referrer" />
+            <figcaption>
+              <strong>{T.cards[card].title}</strong>
+              {T.cards[card].text}
+              {T.cards[card].credit ? <small>{T.cards[card].credit}</small> : null}
+            </figcaption>
+          </figure>
+        </div>
+      ) : null}
+      {atDeck && !deckOpen && !touring ? (
         <button type="button" className="otw__deck-arrow" onClick={() => goTo('deck')}>
           {T.toDeck}
         </button>
@@ -664,9 +866,30 @@ export default function Route() {
                   Apple Music (30 s)
                 </button>
               </div>
+              {/* Con Apple, la lista de la página (pulsar una la pone; la que
+                  suena lleva su barra). Con Spotify se ve su reproductor, con
+                  su propia lista, como siempre. */}
+              <ol hidden={source !== 'apple'}>
+                {TRACKS.map((t, i) => (
+                  <li key={t}>
+                    <button type="button" className="otw__track" aria-pressed={song === i} onClick={() => playSong(i)}>
+                      <span className="otw__track-n">{song === i ? '♪' : i + 1}</span>
+                      <span className="otw__track-name">{t}</span>
+                      {song === i ? <span className="otw__track-bar" style={{ '--p': songProgress }} aria-hidden="true" /> : null}
+                    </button>
+                  </li>
+                ))}
+              </ol>
               {/* El reproductor de Spotify se monta una vez y solo se oculta: así no se corta la canción. */}
               <div className="otw__spotify" hidden={source !== 'spotify'}>
                 <div ref={spotifyHost} />
+                {/* Al elegir una canción en su neón, Spotify enseña solo esa: con
+                    este botón vuelve el disco entero con su lista. */}
+                {spotifyTrack >= 0 ? (
+                  <button type="button" className="otw__spotify-album" onClick={() => spotify.current?.showAlbum()}>
+                    {T.spotifyAlbum}
+                  </button>
+                ) : null}
                 {spotifyState === 'loading' ? <p className="otw__credit">{T.spotifyLoading}</p> : null}
                 {spotifyState === 'error' ? (
                   <p className="otw__credit">
@@ -687,24 +910,6 @@ export default function Route() {
                   {T.spotifyNote}
                 </p>
               </div>
-              <ol hidden={source !== 'apple'}>
-                {TRACKS.map((t, i) => (
-                  <li key={t}>
-                    <button
-                      type="button"
-                      className="otw__track"
-                      aria-pressed={record === 'otw' && track === i}
-                      onClick={() => playMain(i)}
-                    >
-                      <span className="otw__track-n">{i + 1}</span>
-                      <span className="otw__track-name">{t}</span>
-                      {record === 'otw' && track === i ? (
-                        <span className="otw__track-bar" style={{ '--p': progress }} aria-hidden="true" />
-                      ) : null}
-                    </button>
-                  </li>
-                ))}
-              </ol>
               <p className="otw__credit" hidden={source !== 'apple'}>
                 {T.appleNote}{' '}
                 <a href={ALBUM_URL} target="_blank" rel="noreferrer">

@@ -58,29 +58,33 @@ const ZERO = {
 };
 
 /**
- * La congelación de puntillas de Michael: rodillas juntas, sobre las puntas,
- * brazos estirados hacia abajo y algo atrás, la cabeza girada con la barbilla
- * arriba. `s` es cuánto (0..1) y `t` el tiempo para el temblor de las puntas.
+ * La congelación de puntillas de Michael, como en sus directos: subido del
+ * todo a las puntas (el zapato casi vertical, el talón arriba), las rodillas
+ * muy dobladas y echadas hacia delante, la cadera adelantada, el tronco
+ * inclinado hacia atrás, la barbilla arriba y los brazos sueltos, colgando
+ * junto a los muslos. `s` es cuánto (0..1) y `t` el tiempo para el temblor.
  */
 function toeStand(s, t) {
-  const tremble = Math.sin(t * 38) * 0.025 * s;
-  const toe = s * (0.85 + tremble);
+  const tremble = Math.sin(t * 38) * 0.02 * s;
+  const toe = s * (1.3 + tremble);
   return {
     toeR: toe,
     toeL: toe,
-    kneeR: s * 0.12,
-    kneeL: s * 0.12,
-    legR: -s * 0.06,
-    legL: -s * 0.06,
-    lean: s * 0.04,
-    headY: s * 0.6,
-    headX: -s * 0.2,
-    armRZ: -s * 0.18,
-    armLZ: s * 0.18,
-    armRX: s * 0.28,
-    armLX: s * 0.28,
-    elbowR: s * 0.3,
-    elbowL: s * 0.3,
+    // Muslos hacia delante y espinillas hacia atrás: las rodillas salen y los
+    // pies quedan debajo de la cadera.
+    kneeR: s * 0.95,
+    kneeL: s * 0.95,
+    legR: -s * 0.55,
+    legL: -s * 0.55,
+    lean: -s * 0.07,
+    headY: s * 0.2,
+    headX: -s * 0.26,
+    armRZ: -s * 0.08,
+    armLZ: s * 0.08,
+    armRX: s * 0.02,
+    armLX: s * 0.02,
+    elbowR: s * 0.12,
+    elbowL: s * 0.12,
   };
 }
 
