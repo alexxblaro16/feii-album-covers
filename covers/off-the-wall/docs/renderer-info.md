@@ -38,3 +38,6 @@ Esmoquin abierto (fajín y botones de camisa) y monitor a 512 px, medido en Inte
 Espejo detrás de las cámaras (Reflector, 512 px), medido en Intel UHD el 2026-11-11: Portada 77 calls; De lado 73; Por detrás 69; El plató 79; 8 texturas. Contando todas las pasadas de WebGL por fotograma (sombra, monitor, espejo y escena): como mucho 98 en escritorio y 102 en móvil simulado.
 
 Actualización: el monitor usa una imagen JPG estática en lugar de la segunda pasada de render. Las mediciones anteriores corresponden al monitor en directo y no se han repetido para esta versión.
+
+Móvil por debajo de 80 (2026-11-12). Medido en un móvil simulado (390x844, táctil, Edge con ANGLE D3D11 sobre Intel UHD), contando todas las llamadas de WebGL de cada fotograma (sombra, monitor, espejo y escena): Portada 73, El plató 75, De lado 66, Primer plano 38, Por detrás 30, Tocadiscos 32, Los Jackson 5 31, y bailando 73. Dos cambios: en móvil las piezas pequeñas de Michael (puños, manos, calcetines, zapatos, solapas y cuello) no proyectan sombra, y el entorno de reflejos va en un componente memorizado. Antes se volvía a generar cada vez que la ruta se repintaba y en ese fotograma había hasta 19 llamadas más (picos de 92-94). Solo quedan por encima de 80 los fotogramas del arranque, cuando se generan una vez el entorno, el monitor y el espejo. Sin probar en un móvil real.
+
