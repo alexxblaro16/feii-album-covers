@@ -22,8 +22,8 @@ const POS = [2.6, 0, 6.4];
 const FACE = Math.atan2(-POS[0], -POS[2]);
 const TILT = -0.04;
 
-/** @param {{ onHover: (on: boolean) => void }} props */
-export default function SpotifyMirror({ onHover }) {
+/** @param {{ onHover: (on: boolean, name?: string) => void }} props */
+export default function SpotifyMirror({ onHover, lang }) {
   const res = useMemo(() => {
     const glass = new Reflector(new PlaneGeometry(W, H), {
       textureWidth: 512,
@@ -83,7 +83,7 @@ export default function SpotifyMirror({ onHover }) {
         onClick={open}
         onPointerOver={(e) => {
           e.stopPropagation();
-          onHover(true);
+          onHover(true, lang === 'en' ? 'Mirror · opens the album on Spotify' : 'Espejo · abre el disco en Spotify');
         }}
         onPointerOut={() => onHover(false)}
       >

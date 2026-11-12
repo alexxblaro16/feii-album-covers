@@ -2,27 +2,55 @@
 // Un solo sitio para los números que comparten la escena, la cámara y el DOM.
 
 /** Pared de ladrillo del fondo: su cara delantera está en z = WALL.z. */
-export const WALL = { width: 6.4, height: 4.2, z: -1.9 };
+// Michael está casi pegado a la pared, como en la foto (su sombra cae justo al lado).
+export const WALL = { width: 6.4, height: 4.2, z: -1.0 };
 
 /** Hasta dónde se puede caminar (no se atraviesa la pared ni se sale del plató). */
-export const BOUNDS = { minX: -2.9, maxX: 2.9, minZ: WALL.z + 0.28, maxZ: 10.5, minY: 0.25, maxY: 3.2 };
+// Las paredes del estudio están en x = ±4,3 y z = 10,5 (Studio.jsx).
+export const BOUNDS = { minX: -4.0, maxX: 4.0, minZ: WALL.z + 0.28, maxZ: 10.2, minY: 0.25, maxY: 3.2 };
+
+/**
+ * Lo que la cámara no puede atravesar al caminar por debajo de 2 m: círculos
+ * [x, z, radio] alrededor de los pies de luz, el trípode, los muebles y los
+ * baúles del plató (Studio.jsx, RecordPlayer.jsx, LiveMonitor.jsx, SpotifyMirror.jsx).
+ */
+export const COLLIDERS = [
+  [-2.1, 2.7, 0.4],
+  [2.3, 2.2, 0.4],
+  [0.9, 3.9, 0.35],
+  [2.9, 3.3, 0.45],
+  [-3.7, 3.3, 0.35],
+  [-2.75, 6.1, 0.75],
+  [-1.55, 6.3, 0.42],
+  [2.55, 4.85, 0.55],
+  [2.0, 7.7, 0.5],
+  [-2.7, 8.3, 0.5],
+  [-0.95, 4.25, 0.3],
+  [2.6, 6.4, 0.45],
+];
 
 /** Donde está Michael (centro de los pies) y a qué altura mira la cámara. */
-export const MICHAEL = { x: 0, z: 0, eye: 1.05 };
+// x: 10 cm a la derecha del centro del encuadre, como en la portada (su
+// centro queda al 51 % del ancho de la foto).
+export const MICHAEL = { x: 0.1, z: 0, eye: 1.05 };
 
 /**
  * Vistas con nombre. `position` es la cámara y `target` el punto al que mira.
  * `cover` reproduce el encuadre de la portada: de frente, a la altura del pecho.
  */
 export const VIEWS = {
-  cover: { label: 'Portada', position: [0, 1.16, 5.1], target: [0, 1.12, 0] },
+  cover: { label: 'Portada', position: [0, 0.72, 4.4], target: [0, 0.95, 0] },
   side: { label: 'De lado', position: [3.1, 1.35, 1.6], target: [0, 1.0, -0.2] },
-  behind: { label: 'Por detrás de Michael', position: [-0.95, 1.65, -1.55], target: [0.55, 1.05, 2.6] },
+  behind: { label: 'Por detrás de Michael', position: [-1.15, 1.7, -0.72], target: [0.3, 1.0, 2.6] },
   set: { label: 'El plató', position: [-3.3, 2.9, 6.9], target: [0.2, 0.8, 0.9] },
   // La cara de cerca: la sonrisa, el afro y la pajarita.
   face: { label: 'Primer plano', position: [0.22, 1.66, 1.15], target: [0, 1.6, 0] },
   // Delante del monitor del plató: se ve lo que graba la cámara del trípode.
   monitor: { label: 'El monitor', position: [-1.85, 1.42, 5.3], target: [-0.95, 1.3, 4.25] },
+  // Delante del cuadro de los Jackson 5 y del tocadiscos, en la pared derecha.
+  // El tocadiscos y sus discos, en la mesa junto a la pared derecha.
+  deck: { label: 'Tocadiscos', position: [1.15, 1.5, 5.55], target: [2.5, 0.95, 4.85] },
+  j5: { label: 'Los Jackson 5', position: [0.95, 1.6, 4.75], target: [3.9, 1.45, 4.68] },
 };
 
 
@@ -36,11 +64,14 @@ export function frameFraction(width, height) {
 
 /**
  * Posición de la cámara para la vista "Portada": se aleja o se acerca según la
- * pantalla, para que el cuadrado de la portada abarque siempre unos 2,25 m
- * (de los pies a por encima del pelo), igual en un móvil vertical que en un PC.
+ * pantalla, para que el cuadrado de la portada abarque siempre 1,95 m, de los
+ * zapatos a justo por encima del pelo, como en la foto original (donde Michael
+ * llena casi todo el alto). Igual en un móvil vertical que en un PC.
  */
 export function coverPosition(width, height) {
-  const span = 2.4;
+  const span = 1.95;
   const d = span / (frameFraction(width, height) * 2 * Math.tan((FOV * Math.PI) / 360));
-  return [0, 1.16, MICHAEL.z + d];
+  // Cámara baja, a la altura de la cadera, mirando un poco hacia arriba: casi
+  // no se ve suelo, como en la foto.
+  return [0, 0.72, MICHAEL.z + d];
 }

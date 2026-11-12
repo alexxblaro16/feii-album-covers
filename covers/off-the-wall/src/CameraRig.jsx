@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Vector3 } from 'three';
-import { BOUNDS, MICHAEL, VIEWS, coverPosition } from './set.js';
+import { BOUNDS, COLLIDERS, MICHAEL, VIEWS, coverPosition } from './set.js';
 
 const WALK_SPEED = 1.7; // metros por segundo
 const RUN = 2.6; // multiplicador con Mayúsculas
@@ -28,14 +28,21 @@ const KEYS = {
   KeyQ: 'd',
 };
 
-/** Zona según el ángulo entre la cámara y el frente de Michael. */
-function zoneOf(cam) {
+/**
+ * Zona según el ángulo entre la cámara y el frente de Michael. Para ser la
+ * portada, además, la cámara tiene que mirar hacia la pared (si mira a un lado
+ * del plató, por ejemplo al cuadro de los Jackson 5, no lo es).
+ */
+function zoneOf(cam, target) {
   const dx = cam.x - MICHAEL.x;
   const dz = cam.z - MICHAEL.z;
   const angle = Math.abs((Math.atan2(dx, dz) * 180) / Math.PI);
   if (angle > 115) return 'behind';
   if (angle > 55) return 'side';
-  if (angle < 14 && dz > 3.4) return 'cover';
+  const lx = target.x - cam.x;
+  const lz = target.z - cam.z;
+  const facing = -lz / (Math.hypot(lx, lz) || 1) > 0.9;
+  if (angle < 14 && dz > 3.4 && facing) return 'cover';
   return 'front';
 }
 
@@ -55,6 +62,8 @@ export default function CameraRig({ view, reduced, onZone }) {
   const running = useRef(false);
   // Zoom pendiente de los botones o de + y −: se aplica suave en useFrame.
   const zoom = useRef(0);
+  // Punto del suelo al que se ha pedido caminar (pulsando en él).
+  const walkTo = useRef(/** @type {Vector3 | null} */ (null));
   // Vectores reutilizados: nada se crea dentro de useFrame.
   const tmp = useRef({ fwd: new Vector3(), right: new Vector3(), move: new Vector3(), up: new Vector3(0, 1, 0) });
 
@@ -102,12 +111,25 @@ export default function CameraRig({ view, reduced, onZone }) {
       zoom.current += e.detail;
       goal.current = null;
     };
+    // Un objeto pulsado pide ir a verlo de cerca.
+    const goto = (e) => {
+      goal.current = { position: new Vector3(...e.detail.position), target: new Vector3(...e.detail.target) };
+    };
+    // Pulsar en el suelo: se camina hasta ahí (se resuelve en useFrame, que
+    // conoce la cámara: se mantiene la altura y hacia dónde se mira).
+    const walk = (e) => {
+      walkTo.current = new Vector3(...e.detail);
+    };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
     window.addEventListener('blur', clear);
     window.addEventListener('otw-key', pad);
     window.addEventListener('otw-zoom', zoomBtn);
+    window.addEventListener('otw-goto', goto);
+    window.addEventListener('otw-walk', walk);
     return () => {
+      window.removeEventListener('otw-goto', goto);
+      window.removeEventListener('otw-walk', walk);
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
       window.removeEventListener('blur', clear);
@@ -121,6 +143,21 @@ export default function CameraRig({ view, reduced, onZone }) {
     if (!c) return;
     const dt = Math.min(rawDelta, 0.05);
     const { fwd, right, move, up } = tmp.current;
+
+    // 0. Caminar hasta un punto del suelo: el punto mirado pasa a estar ahí, y
+    // la cámara se coloca detrás, en la misma dirección de antes, a 1,8 m y a
+    // la altura de los ojos de una persona (como si se fuera andando).
+    if (walkTo.current) {
+      const pt = walkTo.current;
+      walkTo.current = null;
+      const target = new Vector3(pt.x, 1.15, pt.z);
+      const back = move.subVectors(camera.position, c.target);
+      back.y = 0;
+      if (back.lengthSq() < 1e-6) back.set(0, 0, 1);
+      back.setLength(1.8);
+      const position = new Vector3(target.x + back.x, 1.6, target.z + back.z);
+      goal.current = { position, target };
+    }
 
     // 1. Viaje a una vista con nombre (salto directo si hay reducción de movimiento).
     if (goal.current) {
@@ -179,6 +216,19 @@ export default function CameraRig({ view, reduced, onZone }) {
       p.x = MICHAEL.x + dx * s;
       p.z = MICHAEL.z + (d ? dz * s : 0.5);
     }
+    // ...ni a través del atrezo: cada objeto empuja la cámara fuera de su círculo.
+    if (p.y < 2) {
+      for (const [cx, cz, r] of COLLIDERS) {
+        const ox = p.x - cx;
+        const oz = p.z - cz;
+        const od = Math.hypot(ox, oz);
+        if (od < r) {
+          const s = r / (od || 1);
+          p.x = cx + ox * s;
+          p.z = cz + (od ? oz * s : r);
+        }
+      }
+    }
     const t = c.target;
     t.x = Math.min(BOUNDS.maxX, Math.max(BOUNDS.minX, t.x));
     t.z = Math.min(BOUNDS.maxZ, Math.max(WALL_LIMIT, t.z));
@@ -186,7 +236,7 @@ export default function CameraRig({ view, reduced, onZone }) {
     c.update();
 
     // 4. Zona: solo se avisa al cambiar, no en cada fotograma.
-    const z = zoneOf(p);
+    const z = zoneOf(p, t);
     if (z !== zone.current) {
       zone.current = z;
       onZone(z);
