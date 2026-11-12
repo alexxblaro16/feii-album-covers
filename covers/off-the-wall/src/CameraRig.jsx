@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { CatmullRomCurve3, Vector3 } from 'three';
-import { BOUNDS, COLLIDERS, MICHAEL, VIEWS, coverPosition } from './set.js';
+import { BOUNDS, COLLIDERS, MICHAEL, VIEWS, coverPosition, fovFor } from './set.js';
 
 const WALK_SPEED = 2.0; // metros por segundo
 const RUN = 2.6; // multiplicador con Mayúsculas
@@ -182,9 +182,16 @@ export default function CameraRig({ view, reduced, onZone, onDeck }) {
     };
   }, []);
 
-  useFrame(({ camera }, rawDelta) => {
+  useFrame(({ camera, size: screen }, rawDelta) => {
     const c = controls.current;
     if (!c) return;
+    // La lente depende de la forma de la pantalla (más abierta en vertical):
+    // se ajusta al cambiar de tamaño o al girar el móvil.
+    const fov = fovFor(screen.width, screen.height);
+    if (Math.abs(camera.fov - fov) > 0.01) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
     const dt = Math.min(rawDelta, 0.05);
     const { fwd, right, move, up } = tmp.current;
 

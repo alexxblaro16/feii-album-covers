@@ -328,54 +328,6 @@
   color: #ffb4a2;
 }
 
-/* Móvil: el panel va arriba, plegado al entrar, y deja libre la navegación de la galería. */
-@media (max-width: 720px) {
-  .otw__panel {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    width: auto;
-    max-height: 56dvh;
-    padding: 10px 12px;
-  }
-
-  .otw__head {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    column-gap: 10px;
-  }
-
-  .otw__head .otw__meta {
-    grid-column: 1;
-    margin-bottom: 0;
-  }
-
-  .otw__toggle {
-    display: inline-block;
-    grid-column: 2;
-    grid-row: 1 / span 3;
-  }
-
-  .otw__body {
-    margin-top: 10px;
-  }
-
-  /* En el móvil el título ya está en el panel: el encuadre no lo repite. */
-  .otw__frame-artist,
-  .otw__frame-title {
-    display: none;
-  }
-
-  .otw__artist {
-    font-size: 1.3rem;
-  }
-
-  .otw__title {
-    font-size: 1.2rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .otw__frame {
     transition: none;
@@ -608,17 +560,6 @@
 @keyframes otw-nudge {
   to {
     transform: translateX(calc(-50% + 8px));
-  }
-}
-
-@media (max-width: 720px) {
-  .otw__deck {
-    left: 10px;
-    right: 10px;
-    top: 120px;
-    width: auto;
-    transform: none;
-    max-height: 40dvh;
   }
 }
 
@@ -979,29 +920,6 @@
   }
 }
 
-/* Móvil: abajo, por encima de la navegación de la galería (que ocupa unos
-   150 px del borde); la cruceta táctil sube por encima del reproductor. */
-@media (max-width: 720px) {
-  .otw__music {
-    top: auto;
-    bottom: 160px;
-    left: 10px;
-    right: 10px;
-    width: auto;
-    max-height: 42dvh;
-  }
-
-  .otw__pad {
-    bottom: 236px;
-  }
-
-  .otw__music-body {
-    order: -1;
-    border-top: 0;
-    border-bottom: 1px solid var(--otw-line);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .otw__music.is-playing .otw__eq i {
     animation: none;
@@ -1303,4 +1221,447 @@
   color: var(--otw-ink);
   font: inherit;
   cursor: pointer;
+}
+
+/* ==========================================================================
+   Móvil, tableta y pantallas táctiles.
+   La galería pone encima su navegación (fija, abajo): --otw-nav es el alto
+   que ocupa, y nada de la ruta se coloca en esa franja.
+   ========================================================================== */
+
+.otw {
+  --otw-nav: 96px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* En pantallas estrechas la navegación de la galería se apila en tres filas. */
+@media (max-width: 640px) {
+  .otw {
+    --otw-nav: 168px;
+  }
+}
+
+/* Ni rebote ni «tirar para recargar» mientras se gira la cámara con el dedo. */
+html.route-off-the-wall,
+html.route-off-the-wall body {
+  overscroll-behavior: none;
+}
+
+/* Sin zoom de doble toque en los botones. */
+.otw button {
+  touch-action: manipulation;
+}
+
+.otw__help--touch {
+  display: none;
+}
+
+/* Con el dedo: botones a la medida de una yema (44 px) y la ayuda táctil. */
+@media (hover: none) and (pointer: coarse) {
+  .otw__help--keys {
+    display: none;
+  }
+
+  .otw__help--touch {
+    display: block;
+  }
+
+  .otw button {
+    min-height: 44px;
+  }
+
+  .otw .otw__toggle,
+  .otw .otw__spotify-album,
+  .otw__deck li button,
+  .otw button.otw__track {
+    min-height: 40px;
+  }
+
+  .otw .otw__lang button,
+  .otw__deck-records button {
+    min-height: 36px;
+    padding: 2px 12px;
+  }
+
+  .otw .otw__tour-skip {
+    min-height: 44px;
+    padding: 4px 20px;
+  }
+
+  .otw__deck-head .otw__deck-close {
+    min-width: 44px;
+  }
+
+  /* El desplazamiento de un panel no arrastra la página ni la cámara. */
+  .otw__panel,
+  .otw__music-body,
+  .otw__deck,
+  .otw__photo figure {
+    overscroll-behavior: contain;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Móvil de pie: dos barras finas arriba (título y música), el plató en medio
+   y, abajo, el zoom a la izquierda y la cruceta a la derecha, justo encima de
+   la navegación de la galería. Los paneles se despliegan hacia abajo desde su
+   barra, de uno en uno, sin llegar a esa franja.
+   -------------------------------------------------------------------------- */
+@media (max-width: 720px) and (min-height: 521px) {
+  .otw {
+    --otw-edge: 8px;
+    --otw-bar: 54px;
+    /* Donde acaban las dos barras de arriba. */
+    --otw-under: calc(var(--otw-edge) + var(--otw-bar) + 2px + 6px + 54px + 6px);
+  }
+
+  .otw__panel {
+    top: var(--otw-edge);
+    left: var(--otw-edge);
+    right: var(--otw-edge);
+    width: auto;
+    max-height: calc(100dvh - var(--otw-edge) - var(--otw-nav) - 8px);
+    padding: 0 12px;
+  }
+
+  .otw__panel.is-closed {
+    width: auto;
+    min-width: 0;
+  }
+
+  .otw__panel:not(.is-closed) {
+    z-index: 9;
+    background: rgb(20 13 10 / 0.94);
+  }
+
+  /* Título, idioma y botón en una sola fila. */
+  .otw__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 8px;
+    min-height: var(--otw-bar);
+  }
+
+  .otw__panel:not(.is-closed) .otw__head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    margin: 0 -12px;
+    padding: 0 12px;
+    background: #1b120f;
+    border-bottom: 1px solid var(--otw-line);
+  }
+
+  .otw__artist {
+    grid-area: 1 / 1;
+    align-self: end;
+    font-size: 1.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .otw__title {
+    grid-area: 2 / 1;
+    align-self: start;
+    margin: 0;
+    font-size: clamp(0.78rem, 3.6vw, 0.95rem);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .otw__meta {
+    display: none;
+  }
+
+  .otw__lang {
+    grid-area: 1 / 2 / span 2;
+    margin: 0;
+  }
+
+  .otw .otw__toggle {
+    position: static;
+    grid-area: 1 / 3 / span 2;
+  }
+
+  .otw__body {
+    padding: 12px 0;
+  }
+
+  /* La música, en su barra, debajo de la del título. */
+  .otw__music {
+    top: calc(var(--otw-edge) + var(--otw-bar) + 2px + 6px);
+    left: var(--otw-edge);
+    right: var(--otw-edge);
+    width: auto;
+    max-height: calc(100dvh - var(--otw-edge) - var(--otw-bar) - 8px - var(--otw-nav) - 8px);
+  }
+
+  .otw__music:not(.is-folded) {
+    z-index: 9;
+    background: rgb(20 13 10 / 0.94);
+  }
+
+  .otw__music-bar {
+    padding: 6px 10px;
+  }
+
+  .otw .otw__play,
+  .otw .otw__fold {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .otw__zoom {
+    top: auto;
+    left: 10px;
+    bottom: calc(var(--otw-nav) + 6px);
+    transform: none;
+  }
+
+  .otw__pad {
+    right: 10px;
+    bottom: calc(var(--otw-nav) + 6px);
+    grid-template-columns: repeat(3, 42px);
+    grid-template-rows: repeat(3, 42px);
+    gap: 2px;
+  }
+
+  .otw__pad button {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+
+  .otw__deck {
+    top: var(--otw-under);
+    left: var(--otw-edge);
+    right: var(--otw-edge);
+    z-index: 9;
+    width: auto;
+    max-height: calc(100dvh - var(--otw-under) - var(--otw-nav) - 8px);
+    transform: none;
+  }
+
+  /* Una sola barra de desplazamiento: la del menú entero. */
+  .otw__deck ol {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .otw .otw__deck-arrow {
+    top: calc(var(--otw-under) + 6px);
+    bottom: auto;
+  }
+
+  /* Recorrido de entrada: el rótulo y «Saltar» van arriba (abajo los taparía
+     la navegación de la galería) y el rótulo puede partirse en dos líneas. */
+  .otw__tour-caption {
+    top: calc(11dvh + 14px);
+    bottom: auto;
+    width: calc(100vw - 32px);
+    white-space: normal;
+    text-align: center;
+  }
+
+  .otw .otw__tour-skip {
+    top: max(8px, calc(5.5dvh - 22px));
+    right: 12px;
+    bottom: auto;
+  }
+
+  .otw__date {
+    padding: 14px 20px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Móvil tumbado (poca altura): la música arriba a la izquierda y el título
+   arriba a la derecha, los dos en una barra; zoom y cruceta, en los lados.
+   -------------------------------------------------------------------------- */
+@media (max-height: 520px) {
+  .otw {
+    --otw-edge: 8px;
+  }
+
+  .otw__panel {
+    top: var(--otw-edge);
+    right: var(--otw-edge);
+    left: auto;
+    width: min(24rem, 58vw);
+    max-height: calc(100dvh - var(--otw-edge) - var(--otw-nav) - 4px);
+    padding: 0 12px;
+  }
+
+  .otw__panel.is-closed {
+    width: auto;
+    min-width: 0;
+  }
+
+  .otw__panel:not(.is-closed) {
+    z-index: 9;
+    background: rgb(20 13 10 / 0.94);
+  }
+
+  .otw__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: 8px;
+    min-height: 48px;
+  }
+
+  .otw__panel:not(.is-closed) .otw__head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    margin: 0 -12px;
+    padding: 0 12px;
+    background: #1b120f;
+    border-bottom: 1px solid var(--otw-line);
+  }
+
+  .otw__artist,
+  .otw__meta {
+    display: none;
+  }
+
+  .otw__title {
+    margin: 0;
+    font-size: 0.95rem;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+
+  .otw__lang {
+    margin: 0;
+  }
+
+  .otw .otw__toggle {
+    position: static;
+  }
+
+  .otw__body {
+    padding: 10px 0;
+  }
+
+  .otw__music {
+    top: var(--otw-edge);
+    left: var(--otw-edge);
+    width: min(17rem, calc(100vw - 22rem));
+    max-height: calc(100dvh - var(--otw-edge) - var(--otw-nav) - 4px);
+  }
+
+  /* Abierto se ensancha: dentro va el reproductor de Spotify. */
+  .otw__music:not(.is-folded) {
+    z-index: 9;
+    width: min(22rem, 56vw);
+    background: rgb(20 13 10 / 0.94);
+  }
+
+  .otw__music-bar {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+
+  .otw__eq {
+    display: none;
+  }
+
+  .otw__now-title {
+    font-size: 0.9rem;
+  }
+
+  .otw .otw__play,
+  .otw .otw__fold {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .otw__zoom {
+    top: auto;
+    left: 10px;
+    bottom: calc(var(--otw-nav) + 4px);
+    transform: none;
+  }
+
+  .otw__pad {
+    right: 10px;
+    bottom: calc(var(--otw-nav) + 4px);
+    grid-template-columns: repeat(3, 40px);
+    grid-template-rows: repeat(3, 40px);
+    gap: 2px;
+  }
+
+  .otw__pad button {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .otw__deck {
+    top: 64px;
+    left: var(--otw-edge);
+    z-index: 9;
+    width: min(20rem, 48vw);
+    max-height: calc(100dvh - 64px - var(--otw-nav) - 4px);
+    transform: none;
+  }
+
+  .otw__deck ol {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .otw .otw__deck-arrow {
+    top: 64px;
+    bottom: auto;
+  }
+
+  .otw__tour-caption {
+    bottom: calc(var(--otw-nav) + 6px);
+  }
+
+  .otw .otw__tour-skip {
+    top: max(6px, calc(5.5dvh - 22px));
+    bottom: auto;
+  }
+
+  /* Pantalla de entrada y fichas: todo cabe sin desplazarse. */
+  .otw__intro {
+    gap: 8px;
+    padding: 8px 16px;
+  }
+
+  .otw__intro-deck {
+    width: min(40dvh, 300px);
+  }
+
+  .otw__photo figure {
+    max-height: calc(100dvh - 24px);
+  }
+
+  .otw__photo img {
+    max-height: 46dvh;
+  }
+
+  .otw__date {
+    padding: 10px 24px;
+  }
+}
+
+/* Tumbado y además estrecho: la navegación de la galería ocupa media pantalla
+   y no queda sitio para la cruceta ni el zoom (se camina tocando el suelo y se
+   acerca con el pellizco). */
+@media (max-height: 520px) and (max-width: 640px) {
+  .otw__pad,
+  .otw__zoom {
+    display: none;
+  }
 }

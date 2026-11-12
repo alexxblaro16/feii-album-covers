@@ -69,6 +69,18 @@ export function frameFraction(width, height) {
 }
 
 /**
+ * Campo de visión según la pantalla. En horizontal es FOV. En vertical (móvil
+ * o tableta de pie) el cuadrado de la portada ocupa menos alto de pantalla, y
+ * con la misma lente habría que irse muy lejos para que Michael cupiera: todo
+ * el plató se veía por un tubo. Aquí se abre la lente lo justo para que la
+ * portada se haga desde la misma distancia que en un ordenador (tope: 75°).
+ */
+export function fovFor(width, height) {
+  const half = (Math.tan((FOV * Math.PI) / 360) * 0.78) / frameFraction(width, height);
+  return Math.min(75, (2 * Math.atan(half) * 180) / Math.PI);
+}
+
+/**
  * Posición de la cámara para la vista "Portada": se aleja o se acerca según la
  * pantalla, para que el cuadrado de la portada abarque siempre 1,95 m, de los
  * zapatos a justo por encima del pelo, como en la foto original (donde Michael
@@ -76,7 +88,7 @@ export function frameFraction(width, height) {
  */
 export function coverPosition(width, height) {
   const span = 1.95;
-  const d = span / (frameFraction(width, height) * 2 * Math.tan((FOV * Math.PI) / 360));
+  const d = span / (frameFraction(width, height) * 2 * Math.tan((fovFor(width, height) * Math.PI) / 360));
   // Cámara baja, a la altura de la cadera, mirando un poco hacia arriba: casi
   // no se ve suelo, como en la foto.
   return [0, 0.72, MICHAEL.z + d];

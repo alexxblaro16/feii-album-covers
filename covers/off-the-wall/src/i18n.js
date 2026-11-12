@@ -85,6 +85,7 @@ export const STR = {
     deckPick: 'Elige disco',
     deckHelp: 'Pulsa un disco y se pone en el plato. Fragmentos de 30 s de Apple Music.',
     toDeck: 'Ir al tocadiscos →',
+    deckMenu: 'Elegir disco y canción',
     tour: ['Cara A: cinco canciones en neón', 'Nueva York · Studio 54', 'De los Jackson 5 a Off the Wall', 'Los Ángeles, 1979', 'Muscles, su boa', 'Cara B: las otras cinco'],
     spotifyAlbum: 'Volver al disco entero',
     skip: 'Saltar ›',
@@ -140,6 +141,8 @@ export const STR = {
       ' de cintura para arriba · ',
       ' música',
     ],
+    helpTouch:
+      'Arrastra con un dedo para girar · pellizca con dos para acercarte · toca el suelo para caminar hasta ahí (o usa las flechas) · toca cualquier objeto para verlo de cerca · toca a Michael y baila.',
     quoteTr: 'En un mundo lleno de odio, aún tenemos que atrevernos a tener esperanza.',
     signature: ['Hecho por ', ', con todo el cariño, para Michael Jackson (1958–2009).'],
     measuring: 'Midiendo…',
@@ -207,6 +210,7 @@ export const STR = {
     deckPick: 'Pick a record',
     deckHelp: 'Click a record and it goes on the turntable. 30-second previews from Apple Music.',
     toDeck: 'Go to the record player →',
+    deckMenu: 'Pick a record and a song',
     tour: ['Side A: five songs in neon', 'New York · Studio 54', 'From the Jackson 5 to Off the Wall', 'Los Angeles, 1979', 'Muscles, his boa', 'Side B: the other five'],
     spotifyAlbum: 'Back to the whole album',
     skip: 'Skip ›',
@@ -249,6 +253,8 @@ export const STR = {
     shotAlt: (half) => `Your ${half ? 'waist-up' : 'full'} photo, developed with the cover’s tones and signed by alexxblaro`,
     shotFile: (half) => `off-the-wall-${half ? 'waist-up' : 'full'}.png`,
     download: 'Download your photo',
+    helpTouch:
+      'Drag with one finger to turn · pinch with two to zoom · tap the floor to walk there (or use the arrows) · tap any object to see it up close · tap Michael and he dances.',
     help: [
       'Click any object to see it up close · click the floor to walk there · mouse or finger: turn · scroll or pinch: zoom · ',
       ' or arrows: walk (',

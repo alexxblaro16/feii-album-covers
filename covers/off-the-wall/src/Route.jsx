@@ -19,7 +19,7 @@ import Scene from './Scene.jsx';
 import Intro from './Intro.jsx';
 import Ready from './Ready.jsx';
 import { LANGS, STR, initialLang, saveLang } from './i18n.js';
-import { FOV, VIEWS } from './set.js';
+import { VIEWS, fovFor } from './set.js';
 import { tour as cameraTour } from './cameraEvents.js';
 
 /**
@@ -76,6 +76,24 @@ const DPR = [1, 1.5];
 /** Mi perfil de GitHub: lo enlaza la firma de la foto. */
 const GITHUB = 'https://github.com/alexxblaro16';
 
+/**
+ * Pantalla pequeña: un móvil de pie (estrecha) o tumbado (baja). Ahí los
+ * paneles se abren de uno en uno y se pliegan solos para dejar ver el plató.
+ */
+const COMPACT = '(max-width: 720px), (max-height: 520px)';
+
+function useCompact() {
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.(COMPACT).matches));
+  useEffect(() => {
+    const mq = window.matchMedia?.(COMPACT);
+    if (!mq) return undefined;
+    const onChange = () => setCompact(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return compact;
+}
+
 /** Reloj de la página (ms), fuera del componente: solo se llama desde eventos. */
 const clockNow = () => performance.now();
 
@@ -122,6 +140,11 @@ const TRACKS = [
 
 export default function Route() {
   const reduced = usePrefersReducedMotion();
+  const compact = useCompact();
+  const compactNow = useRef(compact);
+  useEffect(() => {
+    compactNow.current = compact;
+  }, [compact]);
   // Idioma (ES/EN): los textos salen de i18n.js.
   const [lang, setLang] = useState(initialLang);
   const T = STR[lang];
@@ -162,9 +185,11 @@ export default function Route() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [card]);
+  // En pantallas pequeñas el menú no se abre solo al llegar (taparía el
+  // tocadiscos): sale el botón y se abre al tocarlo.
   const onDeck = useCallback((near) => {
     setAtDeck(near);
-    setDeckOpen(near);
+    setDeckOpen((open) => (near ? open || !compactNow.current : false));
   }, []);
   const [progress, setProgress] = useState(0);
   const [hovered, setHovered] = useState(false);
@@ -272,8 +297,44 @@ export default function Route() {
   // `at` cuenta las peticiones: repetir la misma vista vuelve a llevar la cámara.
   const goTo = (name) => {
     setView((v) => ({ name, at: (v?.at ?? 0) + 1 }));
-    if (name === 'deck') setDeckOpen(true);
+    // En el móvil el menú del tocadiscos no se abre solo (lo taparía entero):
+    // al llegar sale su botón.
+    if (name === 'deck' && !compact) setDeckOpen(true);
+    // En el móvil el panel se pliega al elegir: lo que se quiere es ver el plató.
+    if (compact) setPanelOpen(false);
   };
+
+  // En pantallas pequeñas solo cabe un panel abierto: abrir uno pliega los demás.
+  const togglePanel = () => {
+    if (compact && !panelOpen) {
+      setMusicOpen(false);
+      setDeckOpen(false);
+    }
+    setPanelOpen((v) => !v);
+  };
+  const toggleMusic = () => {
+    if (compact && !musicOpen) {
+      setPanelOpen(false);
+      setDeckOpen(false);
+    }
+    setMusicOpen((v) => !v);
+  };
+  // Bailar o hacer la foto desde el panel: en el móvil se pliega para ver a Michael.
+  const foldPanel = () => {
+    if (compact) setPanelOpen(false);
+  };
+
+  // La foto recién hecha se enseña: en el móvil el panel se había plegado para
+  // ver el flash, así que se vuelve a abrir por donde está la foto.
+  const shotEl = useRef(/** @type {HTMLElement | null} */ (null));
+  useEffect(() => {
+    if (!shot || !compactNow.current) return undefined;
+    setMusicOpen(false);
+    setDeckOpen(false);
+    setPanelOpen(true);
+    const id = window.requestAnimationFrame(() => shotEl.current?.scrollIntoView({ block: 'nearest' }));
+    return () => window.cancelAnimationFrame(id);
+  }, [shot]);
 
   // Pantalla de entrada: fase de carga (0 lienzo, 1 letras, 2 fotogramas, 3
   // lista) y si ya se ha entrado. Al entrar, la cámara vuela a la portada.
@@ -656,6 +717,8 @@ export default function Route() {
   const showBudget = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('budget');
   // La cámara empieza al fondo del estudio; al entrar vuela a la portada.
   const initial = useMemo(() => [0, 2.0, 9.6], []);
+  // Lente del primer fotograma (después CameraRig la ajusta a la pantalla).
+  const initialFov = useMemo(() => fovFor(window.innerWidth, window.innerHeight), []);
 
   return (
     <div className={`otw ${zone === 'cover' && !touring ? 'otw--framed' : ''} ${touring ? 'otw--tour' : ''}`}>
@@ -669,7 +732,7 @@ export default function Route() {
           three.current = state;
           advance(1);
         }}
-        camera={{ position: initial, fov: FOV, near: 0.05, far: 40 }}
+        camera={{ position: initial, fov: initialFov, near: 0.05, far: 40 }}
         aria-label={T.sceneLabel}
       >
         <Suspense fallback={null}>
@@ -777,7 +840,7 @@ export default function Route() {
         <div className="otw__deck" role="dialog" aria-label={T.deckDialog}>
           <div className="otw__deck-head">
             <strong>{T.deck}</strong>
-            <button type="button" aria-label={T.deckClose} onClick={() => setDeckOpen(false)}>
+            <button type="button" className="otw__deck-close" aria-label={T.deckClose} onClick={() => setDeckOpen(false)}>
               ×
             </button>
           </div>
@@ -818,8 +881,20 @@ export default function Route() {
         </div>
       ) : null}
       {atDeck && !deckOpen && !touring ? (
-        <button type="button" className="otw__deck-arrow" onClick={() => goTo('deck')}>
-          {T.toDeck}
+        <button
+          type="button"
+          className="otw__deck-arrow"
+          onClick={() => {
+            if (!compact) {
+              goTo('deck');
+              return;
+            }
+            setPanelOpen(false);
+            setMusicOpen(false);
+            setDeckOpen(true);
+          }}
+        >
+          {compact ? T.deckMenu : T.toDeck}
         </button>
       ) : null}
 
@@ -847,9 +922,9 @@ export default function Route() {
             aria-expanded={musicOpen}
             aria-controls="otw-music-body"
             aria-label={musicOpen ? T.hidePlayer : T.showPlayer}
-            onClick={() => setMusicOpen((v) => !v)}
+            onClick={toggleMusic}
           >
-            {musicOpen ? '▾' : '▴'}
+            {musicOpen ? '▴' : '▾'}
           </button>
         </div>
         {/* Se oculta (no se desmonta): así Spotify sigue sonando con el reproductor plegado. */}
@@ -942,7 +1017,7 @@ export default function Route() {
             className="otw__toggle"
             aria-expanded={panelOpen}
             aria-controls="otw-body"
-            onClick={() => setPanelOpen((v) => !v)}
+            onClick={togglePanel}
           >
             {panelOpen ? T.hide : T.controls}
           </button>
@@ -961,11 +1036,11 @@ export default function Route() {
           <fieldset className="otw__group">
             <legend>{T.danceLegend}</legend>
             {ORDER.map((name, i) => (
-              <button key={name} type="button" aria-keyshortcuts={String(i + 1)} onClick={() => dance(name)}>
+              <button key={name} type="button" aria-keyshortcuts={String(i + 1)} onClick={() => { foldPanel(); dance(name); }}>
                 {T.dances[name][0]}
               </button>
             ))}
-            <button type="button" className="otw__star" aria-keyshortcuts="C" onClick={choreography}>
+            <button type="button" className="otw__star" aria-keyshortcuts="C" onClick={() => { foldPanel(); choreography(); }}>
               {T.choreo}
             </button>
           </fieldset>
@@ -981,10 +1056,10 @@ export default function Route() {
 
           <fieldset className="otw__group">
             <legend>{T.doLegend}</legend>
-            <button type="button" aria-keyshortcuts="F" onClick={() => takePhoto('full')}>
+            <button type="button" aria-keyshortcuts="F" onClick={() => { foldPanel(); takePhoto('full'); }}>
               {T.photoFull}
             </button>
-            <button type="button" aria-keyshortcuts="G" onClick={() => takePhoto('half')}>
+            <button type="button" aria-keyshortcuts="G" onClick={() => { foldPanel(); takePhoto('half'); }}>
               {T.photoHalf}
             </button>
             <button type="button" aria-keyshortcuts="M" aria-pressed={playing} onClick={toggleAlbum}>
@@ -993,7 +1068,7 @@ export default function Route() {
           </fieldset>
 
           {shot ? (
-            <figure className="otw__shot">
+            <figure ref={shotEl} className="otw__shot">
               <img
                 src={shot.url}
                 alt={T.shotAlt(shot.crop === 'half')}
@@ -1015,7 +1090,9 @@ export default function Route() {
           <p className="otw__notice" aria-live="polite">
             {notice}
           </p>
-          <p className="otw__help">
+          {/* Ayuda: con el dedo en pantallas táctiles, con el teclado en el resto. */}
+          <p className="otw__help otw__help--touch">{T.helpTouch}</p>
+          <p className="otw__help otw__help--keys">
             {T.help[0]}
             <kbd>W</kbd>
             <kbd>A</kbd>
