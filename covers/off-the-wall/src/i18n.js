@@ -94,6 +94,12 @@ export const STR = {
         text: 'Su boa constrictor, la mascota que tenía en aquellos años.',
         alt: 'Foto de Michael Jackson con Muscles, su boa constrictor',
       },
+      gold: {
+        title: 'The Jacksons, disco de oro',
+        text: 'El disco de oro del cuadro es de verdad: «The Jacksons» (27 de noviembre de 1976) recibió la certificación de oro de la RIAA. Fue su primer álbum con ese nombre y con Epic, tras dejar Motown y a los Jackson 5; Randy entró en lugar de Jermaine. Trae «Enjoy Yourself» y «Blues Away», la primera canción que Michael compuso él solo.',
+        alt: 'Portada del álbum The Jacksons, de 1976',
+        credit: 'Fuente: Wikipedia, «The Jacksons (álbum)»',
+      },
       studio54: {
         title: 'Studio 54, Nueva York',
         text: 'En 1977 Michael se fue a Nueva York a rodar «The Wiz» con Diana Ross y con los arreglos de Quincy Jones, que después produjo «Off the Wall». Por las noches frecuentaba Studio 54, la discoteca del momento: en su pista escuchó los comienzos del hip-hop, que luego se notan en el beatbox de «Workin’ Day and Night».',
@@ -209,6 +215,12 @@ export const STR = {
         title: 'Michael with Muscles',
         text: 'His boa constrictor, the pet he kept in those years.',
         alt: 'Photo of Michael Jackson with Muscles, his boa constrictor',
+      },
+      gold: {
+        title: 'The Jacksons, a gold record',
+        text: 'The gold record in the frame is real: “The Jacksons” (November 27, 1976) was certified gold by the RIAA. It was their first album under that name and on Epic, after leaving Motown and the Jackson 5 behind; Randy came in for Jermaine. It includes “Enjoy Yourself” and “Blues Away”, the first song Michael wrote on his own.',
+        alt: 'Cover of the 1976 album The Jacksons',
+        credit: 'Source: Wikipedia (Spanish), “The Jacksons (álbum)”',
       },
       studio54: {
         title: 'Studio 54, New York',

@@ -41,3 +41,28 @@ Actualización: el monitor usa una imagen JPG estática en lugar de la segunda p
 
 Móvil por debajo de 80 (2026-11-12). Medido en un móvil simulado (390x844, táctil, Edge con ANGLE D3D11 sobre Intel UHD), contando todas las llamadas de WebGL de cada fotograma (sombra, monitor, espejo y escena): Portada 73, El plató 75, De lado 66, Primer plano 38, Por detrás 30, Tocadiscos 32, Los Jackson 5 31, y bailando 73. Dos cambios: en móvil las piezas pequeñas de Michael (puños, manos, calcetines, zapatos, solapas y cuello) no proyectan sombra, y el entorno de reflejos va en un componente memorizado. Antes se volvía a generar cada vez que la ruta se repintaba y en ese fotograma había hasta 19 llamadas más (picos de 92-94). Solo quedan por encima de 80 los fotogramas del arranque, cuando se generan una vez el entorno, el monitor y el espejo. Sin probar en un móvil real.
 
+Neones de las canciones, rincón Studio 54, Muscles, mueble del tocadiscos y entrada de cine (2026-11-12). Coste de lo nuevo: los once rótulos de neón son 1 malla y 1 textura (un lienzo con los textos; el color y el parpadeo van en los vértices); el rincón Studio 54 y la boa son 4 mallas (todo lo opaco fundido, el cuello de la boa, las copas y la bola); las hombreras van fundidas en la chaqueta y el mueble del tocadiscos sigue siendo 1 malla. Ninguna pieza nueva proyecta sombra.
+
+Medido en Microsoft Edge sin ventana (ANGLE D3D11, Intel UHD del i7-13620H) contando las llamadas de WebGL de cada fotograma con todas las pasadas (sombra, espejo y escena), máximo en 3 s por vista, y comparado con el commit anterior (`7fd4e95`) medido igual el mismo día.
+
+| Vista | Móvil simulado 390x844 táctil: antes → ahora | Escritorio 1440x900: antes → ahora |
+| --- | --- | --- |
+| Recorrido de entrada (20 s) | — → 75 | — → 88 |
+| Portada | 73 → 75 | 80 → 82 |
+| De lado | 66 → 66 | 79 → 79 |
+| Por detrás de Michael | 30 → 35 | 163 → 173 |
+| El plató | 75 → 76 | 86 → 88 |
+| Primer plano | 38 → 38 | 50 → 50 |
+| El monitor | 26 → 27 | 85 → 87 |
+| Tocadiscos | 35 → 38 | 60 → 64 |
+| Los Jackson 5 | 31 → 34 | 41 → 44 |
+| Neones cara A (pared del fondo) | 20 → 22 | 51 → 59 |
+| Neones cara B (pared izquierda) | 18 → 20 | 31 → 33 |
+| Rincón Studio 54 | 18 → 22 | 28 → 32 |
+| Muscles | 21 → 24 | 31 → 34 |
+| Desde el fondo, mirando a Michael | 72 → 74 | 88 → 90 |
+| Portada, con la coreografía | 70 → 72 | 80 → 82 |
+
+Móvil: máximo 76 (El plató), por debajo del tope de 80; esta ronda suma entre 0 y 5 llamadas por vista. Escritorio: máximo 173 (Por detrás de Michael, donde el espejo pinta su reflejo), por debajo del tope de 200. Sin probar en un móvil real.
+
+Panel `?budget` (`renderer.info`, escritorio): lecturas más altas 127 calls y 216 250 triángulos (Por detrás de Michael), 110 geometrías y 13 texturas. El techo anterior del árbol (98 / 205 000 / 100 / 11) ya se superaba antes de esta ronda (117 calls, 104 geometrías y 12 texturas en esa misma vista, desde el espejo y el cuadro de los Jackson 5), así que el panel marcaba "por encima del techo". Techo nuevo en `src/budget.js`: calls ≤ 130, triángulos ≤ 220 000, geometrías ≤ 112, texturas ≤ 13. Las líneas "Accepted ceiling" y "Scene" del principio de este documento son de la task1 y quedan superadas por este párrafo.

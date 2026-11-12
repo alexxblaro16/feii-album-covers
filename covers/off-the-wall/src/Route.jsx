@@ -69,6 +69,8 @@ const CARDS = {
   muscles:
     'https://preview.redd.it/michael-with-muscles-his-pet-snake-v0-joz3ravdq66f1.jpg?width=495&format=pjpg&auto=webp&s=77d942cf450c25d9a240171a294dfa6cb55885bc',
   studio54: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/54-ny.jpg/960px-54-ny.jpg',
+  // El disco de oro del cuadro: la portada de The Jacksons (1976), la misma del tocadiscos.
+  gold: new URL('../public/the-jacksons.jpg', import.meta.url).href,
 };
 const DPR = [1, 1.5];
 /** Mi perfil de GitHub: lo enlaza la firma de la foto. */
@@ -687,6 +689,8 @@ export default function Route() {
             onInspect={(text, id) => {
               setNotice(text);
               if (id === 'muscles') setCard('muscles');
+              // El cuadro de los Jackson 5: la historia de su disco de oro.
+              if (id === 'j5') setCard('gold');
             }}
             onSign={() => setCard('studio54')}
             titles={TRACKS}

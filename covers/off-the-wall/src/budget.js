@@ -14,4 +14,12 @@
 // triángulos; Portada 72 calls. Texturas: 10 desde el cuadro de los Jackson 5
 // (Jackson5.jsx); con el tocadiscos, "Por detrás de Michael" llega a 86 calls.
 // Texturas: 11 desde las fundas de los discos de la mesa del tocadiscos.
-export const CEILING = { calls: 98, triangles: 205000, geometries: 100, textures: 11 };
+//
+// Medido de nuevo el 2026-11-12 (1440x900, mismo equipo) tras los neones de las
+// canciones, el rincón Studio 54, Muscles y el mueble del tocadiscos. El techo
+// anterior (98 / 205 000 / 100 / 11) ya se superaba antes de esta ronda desde
+// el espejo y el cuadro (117 calls, 104 geometrías y 12 texturas en "Por
+// detrás de Michael"). Lecturas más altas ahora: 127 calls y 216 250
+// triángulos en "Por detrás de Michael" (ahí el espejo pinta su reflejo), 110
+// geometrías y 13 texturas (la nueva es la de los neones).
+export const CEILING = { calls: 130, triangles: 220000, geometries: 112, textures: 13 };

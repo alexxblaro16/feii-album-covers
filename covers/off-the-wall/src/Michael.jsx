@@ -70,20 +70,22 @@ const DANCE = {
   legOutR: 0.045, legOutL: 0, footOut: 0.12, heelL: 0, kneeInL: 0, kneeBendL: 0, kneeInR: 0, footInR: 0, hipOut: 0,
   twist: 0, lean: 0, knee: 0, swayHip: 0,
 };
-// Postura de la portada: piernas abiertas, una mano junto al muslo y la otra
-// abierta a la altura de la cintura, con el torso inclinado hacia un lado.
+// Postura de la portada: piernas abiertas, las dos manos en vertical con el
+// pulgar en el bolsillo (una más alta que la otra) y el torso inclinado.
 const COVER = {
   // Como en la foto: el peso va en su pierna izquierda (la de la derecha de
   // la imagen), la cadera sale hacia ese lado y el tronco se inclina hacia el
   // otro; la cabeza compensa y queda casi recta. (Ajustado a mano por Alejandro.)
   hip: 0.06, shoulders: 0.07, headTilt: -0.08, headTurn: -0.04,
-  // (Los brazos caen 0,03 más rectos desde que los hombros son más anchos:
-  // las manos se quedan donde estaban.)
-  armRZ: -0.09, armRX: 0.18, elbowR: -0.75, armLZ: 0.09, armLX: 0.35, elbowL: -1.48,
-  elbowRZ: 0.25, elbowLZ: -0.15,
-  // Muñecas: la mano cae sobre el muslo con los dedos hacia abajo y el
-  // pulgar dentro del bolsillo (thumbIn lo esconde dentro del pantalón).
-  wristRX: 0.5, wristRY: 1.15, wristRZ: -0.15, wristLX: -1.2, wristLY: -0.15, wristLZ: 0.6, thumbIn: 1,
+  // Codos pegados al tronco. La mano derecha cae junto al bolsillo; la
+  // izquierda queda arriba, a la altura de la cintura y del bajo de la camisa
+  // (el codo se dobla más y va algo atrás), también en vertical: con los
+  armRZ: 0.05, armRX: 0.22, elbowR: -1.0, armLZ: -0.05, armLX: 0.45, elbowL: -1.86,
+  elbowRZ: 0.11, elbowLZ: -0.01,
+  // Muñecas: las dos manos en vertical, con los dedos hacia abajo (los de la
+  // derecha, un poco abiertos hacia fuera: solo gira la muñeca) y el
+  // pulgar metido en el bolsillo (thumbIn lo esconde dentro del pantalón).
+  wristRX: 0.995, wristRY: 0.96, wristRZ: -0.486, wristLX: 1.35, wristLY: -1.15, wristLZ: 0.15, thumbIn: 1,
   legOutR: 0.2, legOutL: 0.13, footOut: 0.1, heelL: 0.3, kneeInL: 0.05, kneeBendL: 0.1,
   kneeInR: 0.06, footInR: 0.35, hipOut: -0.03,
   twist: 0, lean: 0.02, knee: 0, swayHip: 0.25,
@@ -94,10 +96,12 @@ const JACKET = [
   [0.0, -0.21],
   [0.152, -0.2],
   [0.148, -0.1],
-  [0.14, -0.02],
-  [0.134, 0.1],
-  [0.133, 0.22],
-  [0.145, 0.36],
+  // Cintura un poco más ancha (0,9 cm por lado): en la portada el tronco cae
+  // casi recto, no tan entallado.
+  [0.146, -0.02],
+  [0.143, 0.1],
+  [0.143, 0.22],
+  [0.151, 0.36],
   // Hombros rectos con hombrera, como un esmoquin de la época: el perfil se
   // mantiene ancho casi hasta arriba y se cierra de golpe hacia el cuello.
   // En la portada se le ve ancho de hombros: la chaqueta se abre más arriba y
@@ -413,8 +417,8 @@ function useGeometries() {
         [
           [0.152, -0.2],
           [0.148, -0.1],
-          [0.14, -0.02],
-          [0.133, 0.1],
+          [0.146, -0.02],
+          [0.142, 0.1],
           [jacketRadius(WAIST) - 0.002, WAIST + 0.06],
         ].map(([r, y]) => new Vector2(r, y - WAIST)),
         64,
@@ -422,9 +426,9 @@ function useGeometries() {
         Math.PI * 2 - 0.9,
       ),
       // Pantalón de talle alto: sube hasta donde acaba la camisa, sin hueco.
-      waist: new CylinderGeometry(0.126, 0.138, WAIST + 0.05, 32, 1, true),
+      waist: new CylinderGeometry(0.134, 0.142, WAIST + 0.05, 32, 1, true),
       // Cinturilla de raso en lo alto del pantalón.
-      band: new CylinderGeometry(0.128, 0.128, 0.022, 32, 1, true),
+      band: new CylinderGeometry(0.136, 0.136, 0.022, 32, 1, true),
       // Chaqueta abierta: la camisa se ve desde la cintura hasta el cuello.
       // Hasta el cuello de la camisa, para que no asome la chaqueta entre los dos.
       shirtV: chestBand(WAIST, 0.592, vFrom, vTo, 0.0035),
@@ -658,10 +662,11 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
     wristR.current.rotation.set(R.wristRX, R.wristRY, R.wristRZ);
     wristL.current.rotation.set(R.wristLX, R.wristLY, R.wristLZ);
     // El pulgar entra en el bolsillo: se encoge hasta desaparecer en el pantalón.
-    // Solo el de la mano derecha, la que cae junto al muslo; la izquierda va
-    // abierta a la altura de la cintura y enseña siempre sus cinco dedos.
-    thumbR.current.scale.setScalar(Math.max(0.001, 1 - R.thumbIn));
-    thumbL.current.scale.setScalar(1);
+    // En la postura de la portada, el de las dos manos (las dos van al
+    // bolsillo); al bailar vuelven a verse los cinco dedos de cada una.
+    const thumb = Math.max(0.001, 1 - R.thumbIn);
+    thumbR.current.scale.setScalar(thumb);
+    thumbL.current.scale.setScalar(thumb);
 
     // Piernas: muslo, rodilla y pie. El pie apoyado se queda plano en el suelo
     // (compensa el giro del muslo y de la rodilla) salvo lo que suba el talón.
