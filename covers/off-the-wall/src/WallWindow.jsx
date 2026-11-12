@@ -1,39 +1,71 @@
-// Ventana en la pared de ladrillo, a la derecha de Michael: marco pintado con
-// travesaño en cruz y cristal verde azulado con un poco de luz de día detrás.
-// Modelada con código (interpretación propia, no sacada de la foto).
-// Coste: 2 llamadas (el marco va fundido en una sola geometría).
+// Ventana alta en la pared, a la derecha de Michael, como en la portada: en
+// el encuadre solo asoma su borde izquierdo, con un marco fino y oscuro y el
+// cielo detrás, azul arriba, casi blanco en medio y un verde difuminado abajo. Al girar la cámara se ve
+// entera. Modelada con código (interpretación propia, no sacada de la foto).
+// Coste: 2 llamadas (el marco va fundido en una sola geometría) y ninguna
+// textura: el degradado del cielo va en los colores de los vértices.
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BoxGeometry, Color, MeshPhysicalMaterial, MeshStandardMaterial, PlaneGeometry } from 'three';
+import { BoxGeometry, Color, Float32BufferAttribute, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry } from 'three';
 import { WALL } from './set.js';
+import { shotRig } from './shotRig.js';
 
-// Medidas (m) y sitio en la pared.
-const W = 0.62;
-const H = 0.82;
-const BAR = 0.045;
-const POS = [1.05, 1.42];
+// Medidas (m) y sitio en la pared: el borde izquierdo queda justo dentro del
+// lado derecho del encuadre de la portada y la parte de abajo, a la altura
+// del pecho de Michael.
+const W = 1.05;
+const H = 2.3;
+// Marco fino, como en la foto.
+const BAR = 0.025;
+const LEFT = 1.06;
+const BOTTOM = 0.97;
+const POS = [LEFT + W / 2, BOTTOM + H / 2];
+// En la foto de cintura para arriba la ventana ocupa la franja derecha, del
+// borde de arriba hasta la altura de las manos, como en esa versión del disco.
+const HALF_POS = [0.54 + W / 2, 0.8 + H / 2];
 // Cara delantera de los ladrillos.
 const FRONT = WALL.z + 0.11;
 
-/** Marco: cuatro listones, el alféizar y la cruz del centro, fundidos en uno. */
+// Cielo de la ventana, de arriba abajo: azul, blanco y verde al fondo.
+const SKY = ['#3a7cc8', '#5f9fdb', '#9cc6e2', '#a6cf9c', '#6aac63'];
+
+/** Marco fino: cuatro listones fundidos en uno. */
 function frameGeometry() {
-  const bar = (w, h, x, y, d = 0.05) => {
+  const bar = (w, h, x, y, d = 0.045) => {
     const g = new BoxGeometry(w, h, d);
     g.translate(x, y, d / 2);
     return g;
   };
   const parts = [
-    bar(W + BAR, BAR, 0, H / 2), // arriba
-    bar(W + BAR, BAR, 0, -H / 2), // abajo
-    bar(BAR, H, -W / 2, 0), // izquierda
-    bar(BAR, H, W / 2, 0), // derecha
-    bar(W + BAR * 3, BAR * 0.8, 0, -H / 2 - BAR * 0.7, 0.08), // alféizar
-    bar(BAR * 0.6, H, 0, 0, 0.035), // cruz vertical
-    bar(W, BAR * 0.6, 0, 0.06, 0.035), // cruz horizontal
+    bar(W + BAR, BAR, 0, H / 2),
+    bar(W + BAR, BAR, 0, -H / 2),
+    bar(BAR, H, -W / 2, 0),
+    bar(BAR, H, W / 2, 0),
   ];
   const g = mergeGeometries(parts);
   parts.forEach((p) => p.dispose());
+  return g;
+}
+
+/** Cristal con el degradado del cielo en los vértices. */
+function skyGeometry() {
+  const rows = SKY.length * 3;
+  const g = new PlaneGeometry(W, H, 1, rows);
+  const pos = g.attributes.position;
+  const colors = [];
+  const c = new Color();
+  const stops = SKY.map((s) => new Color(s));
+  for (let i = 0; i < pos.count; i += 1) {
+    // 0 arriba, 1 abajo.
+    const t = Math.max(0, Math.min(1, (H / 2 - pos.getY(i)) / H));
+    const f = t * (stops.length - 1);
+    const a = Math.min(stops.length - 2, Math.floor(f));
+    c.copy(stops[a]).lerp(stops[a + 1], f - a);
+    colors.push(c.r, c.g, c.b);
+  }
+  g.setAttribute('color', new Float32BufferAttribute(colors, 3));
   return g;
 }
 
@@ -41,17 +73,12 @@ export default function WallWindow() {
   const res = useMemo(
     () => ({
       frame: frameGeometry(),
-      glass: new PlaneGeometry(W, H),
-      paint: new MeshStandardMaterial({ color: '#d9d4c6', roughness: 0.7 }),
-      // Cristal verde azulado: algo de brillo y una luz suave de día detrás.
-      pane: new MeshPhysicalMaterial({
-        color: '#2f6f6c',
-        emissive: new Color('#5fa39b'),
-        emissiveIntensity: 0.35,
-        roughness: 0.12,
-        clearcoat: 1,
-        clearcoatRoughness: 0.08,
-      }),
+      glass: skyGeometry(),
+      // Marco metálico oscuro, como el de la foto.
+      paint: new MeshStandardMaterial({ color: '#3d3c3a', roughness: 0.45, metalness: 0.5 }),
+      // El cielo es luz: no le afectan las luces del estudio.
+      // Sin el mapeo de tonos de la escena: si no, el azul se lavaba casi a blanco.
+      pane: new MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
     }),
     [],
   );
@@ -65,10 +92,18 @@ export default function WallWindow() {
     [res],
   );
 
+  const group = useRef(/** @type {import('three').Group | null} */ (null));
+  useFrame(() => {
+    const g = group.current;
+    if (!g) return;
+    const [x, y] = shotRig.half ? HALF_POS : POS;
+    g.position.set(x, y, FRONT);
+  });
+
   return (
-    <group position={[POS[0], POS[1], FRONT]}>
+    <group ref={group} position={[POS[0], POS[1], FRONT]}>
       {/* El cristal queda un poco hundido respecto a los ladrillos. */}
-      <mesh geometry={res.glass} material={res.pane} position={[0, 0, 0.004]} receiveShadow />
+      <mesh geometry={res.glass} material={res.pane} position={[0, 0, 0.004]} />
       <mesh geometry={res.frame} material={res.paint} receiveShadow />
     </group>
   );

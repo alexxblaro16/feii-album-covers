@@ -18,7 +18,8 @@ import { WALL } from './set.js';
 const BRICK = { w: 0.23, h: 0.072, d: 0.11, joint: 0.012 };
 
 // Paleta de ladrillo cocido: rojos, tostados y alguno quemado.
-const TONES = ['#8c3a22', '#9a4429', '#7d321d', '#a5532f', '#6f2c1a', '#93412a', '#b0603a', '#5e2616'];
+// Más apagados y marrones que un ladrillo nuevo: el de la foto es viejo y gastado.
+const TONES = ['#7b3f33', '#88493a', '#6c372d', '#93584a', '#603126', '#81483a', '#9b6553', '#542b22'];
 
 /** Generador pseudoaleatorio con semilla: la pared sale igual en cada visita. */
 function seeded(seed) {
@@ -114,7 +115,7 @@ export default function BrickWall({ playing, level, reduced }) {
       {/* Mortero: queda hundido entre ladrillos. */}
       <mesh position={[0, WALL.height / 2, WALL.z + 0.03]} receiveShadow>
         <boxGeometry args={[WALL.width + 0.3, WALL.height, 0.06]} />
-        <meshStandardMaterial color="#9c9184" roughness={1} />
+        <meshStandardMaterial color="#b1a89c" roughness={1} />
       </mesh>
     </group>
   );
