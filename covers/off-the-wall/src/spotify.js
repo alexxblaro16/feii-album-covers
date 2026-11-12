@@ -1,6 +1,6 @@
 // El disco en Spotify, con su reproductor oficial (Spotify iFrame API).
 // Con sesión de Spotify abierta en el navegador suenan las canciones enteras;
-// sin sesión, Spotify da fragmentos. En el repositorio no hay ningún audio.
+// sin sesión, Spotify da fragmentos. Las canciones se sirven desde Spotify.
 //
 // El reproductor de Spotify vive en un iframe de otro dominio: la página no
 // puede leer su sonido (a diferencia de los fragmentos de Apple, que sí pasan

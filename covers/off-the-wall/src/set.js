@@ -45,7 +45,7 @@ export const VIEWS = {
   set: { label: 'El plató', position: [-3.3, 2.9, 6.9], target: [0.2, 0.8, 0.9] },
   // La cara de cerca: la sonrisa, el afro y la pajarita.
   face: { label: 'Primer plano', position: [0.22, 1.66, 1.15], target: [0, 1.6, 0] },
-  // Delante del monitor del plató: se ve lo que graba la cámara del trípode.
+  // Delante del monitor del plató: se ve la imagen de la portada.
   monitor: { label: 'El monitor', position: [-1.85, 1.42, 5.3], target: [-0.95, 1.3, 4.25] },
   // Delante del cuadro de los Jackson 5 y del tocadiscos, en la pared derecha.
   // El tocadiscos y sus discos, en la mesa junto a la pared derecha.

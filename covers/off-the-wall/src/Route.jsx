@@ -2,7 +2,7 @@
 // La portada como plató 3D: se abre en el encuadre de la portada y se puede
 // rodear a Michael, ponerse detrás de él y descubrir la sesión de fotos.
 // React lleva el estado y el DOM (título, botones, textos); Scene.jsx, el 3D.
-// Todo está modelado con código: no hay ninguna foto de la portada original.
+// La escena está modelada con código; el monitor muestra la portada original.
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';

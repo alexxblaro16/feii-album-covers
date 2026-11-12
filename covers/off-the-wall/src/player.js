@@ -1,6 +1,6 @@
 // Las canciones del disco: fragmentos oficiales de 30 s de Apple Music
-// (iTunes Search API, álbum 186166282). En el repositorio no hay ningún audio:
-// la lista se pide al entrar (las direcciones de Apple pueden cambiar) y cada
+// (iTunes Search API, álbum 186166282). La lista se pide al entrar
+// (las direcciones de Apple pueden cambiar) y cada
 // fragmento se reproduce directamente desde Apple.
 //
 // Apple sirve los fragmentos con CORS abierto, así que se pueden pasar por un

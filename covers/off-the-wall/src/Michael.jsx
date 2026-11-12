@@ -48,6 +48,12 @@ import { flashLevel, glowWhites } from './flash.js';
 const FLAT = 0.62;
 // Altura de la cadera: el resto del cuerpo cuelga de aquí.
 const HIP_Y = 0.92;
+// Móvil (pantalla táctil o estrecha): las piezas pequeñas (puños, manos,
+// calcetines, zapatos, solapas y cuello) no proyectan sombra. Cada pieza que
+// la proyecta se dibuja otra vez en el mapa de sombras; así el móvil se queda
+// por debajo del tope de 80 llamadas del curso. La sombra de Michael en la
+// pared sigue saliendo (la hacen el cuerpo, las piernas, los brazos y la cabeza).
+const LITE = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse), (max-width: 720px)').matches;
 // Altura (desde la cadera) de la cintura del pantalón, alta como en los
 // setenta: la camisa se ve de ahí al cuello; por debajo, el pantalón negro.
 // Ensanchado del tronco (1 = el modelo tal cual).
@@ -457,13 +463,13 @@ function Arm({ side, mats, armRef, elbowRef, wristRef, thumbRef }) {
         <mesh position={[0, -0.12, 0]} material={mats.wool} castShadow>
           <capsuleGeometry args={[0.039, 0.21, 8, 20]} />
         </mesh>
-        <mesh position={[0, -0.255, 0]} material={mats.shirt} castShadow>
+        <mesh position={[0, -0.255, 0]} material={mats.shirt} castShadow={!LITE}>
           <cylinderGeometry args={[0.037, 0.035, 0.035, 20]} />
         </mesh>
         {/* Mano con su muñeca (gira en useFrame): palma, cuatro dedos abiertos y
             el pulgar, que en la postura de la portada se mete en el bolsillo. */}
         <group ref={wristRef} position={[0, -0.28, 0]}>
-          <mesh position={[0, -0.035, 0.004]} scale={[0.62, 1.0, 0.36]} material={mats.skin} castShadow>
+          <mesh position={[0, -0.035, 0.004]} scale={[0.62, 1.0, 0.36]} material={mats.skin} castShadow={!LITE}>
             <sphereGeometry args={[0.044, 20, 16]} />
           </mesh>
           {[-0.021, -0.007, 0.007, 0.02].map((x, i) => (
@@ -520,12 +526,12 @@ function Leg({ side, mats, geos, legRef, kneeRef, footRef }) {
           <sphereGeometry args={[0.059, 18, 12]} />
         </mesh>
         <mesh geometry={geos.shin} material={mats.wool} castShadow />
-        <mesh position={[0, -(LEG.shin - 0.025), 0]} material={mats.sock} castShadow>
+        <mesh position={[0, -(LEG.shin - 0.025), 0]} material={mats.sock} castShadow={!LITE}>
           <cylinderGeometry args={[0.046, 0.044, 0.1, 20]} />
         </mesh>
         <group ref={footRef} position={[0, -LEG.shin, 0]} rotation-order="YXZ">
           {/* Mocasín: cápsula tumbada a lo largo del pie y aplastada. */}
-          <mesh position={[0, -0.056, 0.05]} rotation={[Math.PI / 2, 0, 0]} scale={[1.05, 1, 0.66]} material={mats.leather} castShadow>
+          <mesh position={[0, -0.056, 0.05]} rotation={[Math.PI / 2, 0, 0]} scale={[1.05, 1, 0.66]} material={mats.leather} castShadow={!LITE}>
             <capsuleGeometry args={[0.047, 0.17, 6, 18]} />
           </mesh>
         </group>
@@ -748,7 +754,7 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
           <mesh geometry={geos.waist} position={[0, (WAIST - 0.05) / 2, 0]} scale={[1, 1, 0.72]} material={mats.wool} />
           <mesh geometry={geos.band} position={[0, WAIST - 0.006, 0]} scale={[1, 1, 0.72]} material={mats.bow} />
           <mesh geometry={geos.shirtV} material={mats.shirt} />
-          <mesh geometry={geos.satin} material={mats.satin} castShadow />
+          <mesh geometry={geos.satin} material={mats.satin} castShadow={!LITE} />
           {/* Pajarita de mariposa y su nudo, algo inclinada hacia delante. */}
           <group position={[0, 0.568, jacketRadius(0.568) * FLAT + 0.04]} rotation={[-0.12, 0, 0]}>
             {/* Sin sombra: el mapa de sombras la pintaba como una raya dentada en la camisa. */}
@@ -761,7 +767,7 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
           <mesh position={[0, 0.612, 0.005]} material={mats.shirt}>
             <cylinderGeometry args={[0.054, 0.06, 0.075, 24, 1, true]} />
           </mesh>
-          <mesh position={[0, 0.645, 0]} material={mats.skin} castShadow>
+          <mesh position={[0, 0.645, 0]} material={mats.skin} castShadow={!LITE}>
             <cylinderGeometry args={[0.046, 0.052, 0.11, 20]} />
           </mesh>
           <Arm side={1} mats={mats} armRef={armL} elbowRef={elbowL} wristRef={wristL} thumbRef={thumbL} />

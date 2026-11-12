@@ -3,7 +3,7 @@
 Album: Michael Jackson — Off the Wall (1979).
 Scene: pared de ladrillo de 4,2 m (1 InstancedMesh de unos 1.340 ladrillos con bisel + mortero), suelo, Michael (unas 55 mallas con perfiles de torno; los dedos no proyectan sombra), plató (2 ventanas de luz, trípode con cámara, reflector, marca en el suelo). Una sola luz con sombra (la principal, mapa de 2048 px, PCF); el plató y la pared no proyectan sombra, solo la reciben. Entorno de reflejos con `Environment` + `Lightformer` (se pinta una vez, sin HDR descargado). DPR [1, 1.5].
 Unit cap, any scene: desktop ≤ 200 calls, mobile ≤ 80.
-Accepted ceiling for this tree: calls ≤ 98, triangles ≤ 193 000, geometries ≤ 90, textures ≤ 8 (antes 6; la séptima es el monitor en directo y la octava el espejo).
+Accepted ceiling for this tree: calls ≤ 98, triangles ≤ 193 000, geometries ≤ 90, textures ≤ 8 (antes 6; la séptima es el monitor y la octava el espejo).
 
 Pins: three@0.185.1, @react-three/fiber@9.8.2, @react-three/drei@10.7.9, react@19.3.1 (this repo's package.json).
 
@@ -18,7 +18,7 @@ Medido con el `BudgetProbe` de la galería (panel en `/covers/off-the-wall?budge
 | task1 — vista Por detrás de Michael | Intel UHD, 2026-11-11 | 1 luz | 79 | 189 040 | 87 | 6 | Sí |
 | task1 — vista El plató (la más cara) | Intel UHD, 2026-11-11 | 1 luz | 96 | 191 574 | 88 | 6 | Sí (escritorio) |
 
-`memory.textures` es un recuento, no bytes: el mapa de sombras, el mapa de entorno y los objetivos internos de `Environment`. La ruta no carga ninguna imagen.
+`memory.textures` es un recuento, no bytes. En las mediciones iniciales incluye el mapa de sombras, el mapa de entorno y los objetivos internos de `Environment`.
 
 Fotogramas: unos 60 por segundo en esa máquina (contados con `requestAnimationFrame` durante 3 s). El grano de película del DOM va sin `mix-blend-mode`: con él bajaba a unos 57.
 
@@ -37,5 +37,4 @@ Esmoquin abierto (fajín y botones de camisa) y monitor a 512 px, medido en Inte
 
 Espejo detrás de las cámaras (Reflector, 512 px), medido en Intel UHD el 2026-11-11: Portada 77 calls; De lado 73; Por detrás 69; El plató 79; 8 texturas. Contando todas las pasadas de WebGL por fotograma (sombra, monitor, espejo y escena): como mucho 98 en escritorio y 102 en móvil simulado.
 
-Plató lleno, tocadiscos y versión en inglés, medido en Intel UHD el 2026-11-12 con el panel ?budget: Portada 80 calls / 198 964 tri / 84 geometrías; De lado 79 / 198 916 / 84; El plató 86 / 199 278 / 104; Por detrás de Michael 107 / 182 496 / 98; Tocadiscos 43 / 26 878 / 104; Los Jackson 5 41 / 26 946 / 104; hasta 12 texturas. El atrezo del plató va fundido por material; el cuadro de los Jackson 5 y las fundas de la mesa usan una textura cada uno (dibujadas con código). Accepted ceiling for this tree: calls ≤ 110, triangles ≤ 205 000, geometries ≤ 110, textures ≤ 12. Pendiente: en móvil el tope del curso es 80 calls y las vistas El plató y Por detrás de Michael lo superan; hay que medirlo en un móvil real y, si hace falta, quitar atrezo en pantallas pequeñas.
-
+Actualización: el monitor usa una imagen JPG estática en lugar de la segunda pasada de render. Las mediciones anteriores corresponden al monitor en directo y no se han repetido para esta versión.

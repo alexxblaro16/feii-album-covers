@@ -6,12 +6,12 @@
 // Las piezas fijas y los surcos van fundidos por material.
 
 import { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BoxGeometry, Color, CylinderGeometry, DoubleSide, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, RingGeometry, Vector3 } from 'three';
+import { BoxGeometry, Color, CylinderGeometry, DoubleSide, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, RingGeometry, TextureLoader, Vector3 } from 'three';
 import { goTo } from './cameraEvents.js';
 import { VIEWS } from './set.js';
-import { createSleeves, repaintSleeves, sleeveGeometry } from './sleeves.js';
+import { COVER_URLS, createSleeves, setSleeveLabelSlot, sleeveGeometry, sleeveLabelGeometry } from './sleeves.js';
 
 // Junto a la pared derecha del plató, girada hacia Michael.
 const POSITION = [2.55, 0, 4.85];
@@ -29,6 +29,7 @@ const SLEEVE_SPOTS = {
   xmas: [0.27, 0.76, 0.06],
   jacksons: [-0.2, 0.95, -0.21],
 };
+const LABEL_SLOT = { abc: 0, xmas: 1, jacksons: 2, otw: 3 };
 
 /** Pieza colocada (posición y giro) lista para fundir con otras del mismo material. */
 function piece(geo, pos, rot = [0, 0, 0]) {
@@ -96,7 +97,7 @@ function buildParts() {
     spindle: new CylinderGeometry(0.004, 0.004, 0.02, 8),
     // La taza de café.
     light: piece(new CylinderGeometry(0.036, 0.03, 0.09, 14), [0.28, 0.785, 0.13]),
-    // Discos de los Jackson 5 en la mesa (diseños propios, ver sleeves.js):
+    // Discos de los Jackson 5 en la mesa (portadas en el atlas de sleeves.js):
     // ABC y The Jacksons de pie, el Christmas Album tumbado.
     abc: piece(sleeveGeometry(0), [0.2, 0.89, -0.16], [-0.32, 0, 0]),
     xmas: piece(sleeveGeometry(1), [0.27, 0.745, 0.06], [-Math.PI / 2, 0, 0.35]),
@@ -104,8 +105,7 @@ function buildParts() {
     // Y el propio Off the Wall en físico, tumbado en la esquina de la mesa.
     otw: piece(sleeveGeometry(3), [-0.27, 0.745, 0.17], [-Math.PI / 2, 0, -0.25]),
     vinyl: vinylGeometry(),
-    // Etiqueta del centro: su color cambia según el disco puesto.
-    label: new CylinderGeometry(0.05, 0.05, 0.007, 20),
+    label: sleeveLabelGeometry(3),
     // Brazo: tubo fino, cabezal al final y contrapeso detrás del pivote.
     arm: fuse([
       piece(new CylinderGeometry(0.004, 0.004, 0.2, 8), [-0.1, 0, 0], [0, 0, Math.PI / 2]),
@@ -128,6 +128,7 @@ function buildParts() {
  * }} props
  */
 export default function RecordPlayer({ playing, record, records, onRecord, onOpenDeck, onHover, lang }) {
+  const covers = useLoader(TextureLoader, COVER_URLS);
   const res = useMemo(
     () => ({
       geo: buildParts(),
@@ -135,8 +136,7 @@ export default function RecordPlayer({ playing, record, records, onRecord, onOpe
         wood: new MeshStandardMaterial({ color: '#6e4a2c', roughness: 0.7 }),
         deck: new MeshStandardMaterial({ color: '#1d1d20', roughness: 0.4, metalness: 0.3 }),
         light: new MeshStandardMaterial({ color: '#ece7dd', roughness: 0.8 }),
-        sleeve: new MeshStandardMaterial({ map: createSleeves(), roughness: 0.75, side: DoubleSide }),
-        label: new MeshStandardMaterial({ color: '#8a2420', roughness: 0.6 }),
+        sleeve: new MeshStandardMaterial({ map: createSleeves(covers), roughness: 0.75, side: DoubleSide }),
         vinyl: new MeshStandardMaterial({ vertexColors: true, roughness: 0.25, metalness: 0.2 }),
         silver: new MeshStandardMaterial({ color: '#cfd2d6', roughness: 0.25, metalness: 0.9 }),
         // Aluminio cepillado del plato y metacrilato ahumado de la tapa.
@@ -144,7 +144,7 @@ export default function RecordPlayer({ playing, record, records, onRecord, onOpe
         lid: new MeshStandardMaterial({ color: '#2a2a30', roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.28, depthWrite: false }),
       },
     }),
-    [],
+    [covers],
   );
   useEffect(
     () => () => {
@@ -160,16 +160,8 @@ export default function RecordPlayer({ playing, record, records, onRecord, onOpe
   // Animación al poner un disco: sale de su funda, vuela en arco y baja al plato.
   const fly = useRef(/** @type {{ from: number[], t: number } | null} */ (null));
   const first = useRef(true);
-  // Con las letras ya cargadas se vuelven a pintar las fundas.
   useEffect(() => {
-    let alive = true;
-    const t = res.mats.sleeve.map;
-    document.fonts?.ready.then(() => alive && repaintSleeves(t));
-    return () => {
-      alive = false;
-    };
-  }, [res]);
-  useEffect(() => {
+    setSleeveLabelSlot(res.geo.label, LABEL_SLOT[record]);
     if (first.current) {
       first.current = false;
       return;
@@ -254,7 +246,7 @@ export default function RecordPlayer({ playing, record, records, onRecord, onOpe
         <group ref={disc} position={PLATTER}>
           <mesh geometry={res.geo.vinyl} material={res.mats.vinyl} />
           <mesh geometry={res.geo.spindle} material={res.mats.silver} position={[0, 0.008, 0]} />
-          <mesh geometry={res.geo.label} material={res.mats.label} position={[0, 0.001, 0]} material-color={records[record].label} />
+          <mesh geometry={res.geo.label} material={res.mats.sleeve} position={[0, 0.0032, 0]} rotation={[-Math.PI / 2, 0, 0]} />
         </group>
         <group ref={arm} position={[0.03, 0.85, 0.11]} rotation={[0, ARM_REST, 0]}>
           <mesh geometry={res.geo.arm} material={res.mats.silver} />
