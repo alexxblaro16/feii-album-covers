@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from 'three';
-import { HALF_SHOT, shotRig } from './shotRig.js';
+import { HALF_SHOT, HALF_SHOT_THRILLER, shotRig } from './shotRig.js';
 import { MICHAEL } from './set.js';
 
 // Fotogramas de espera antes del disparo: el flash ya ha subido y el título y
@@ -17,7 +17,7 @@ import { MICHAEL } from './set.js';
 const WAIT = 3;
 
 /** Coloca la cámara del encuadre de medio cuerpo para un lienzo de w x h píxeles. */
-function aim(cam, w, h) {
+function aim(cam, w, h, HALF_SHOT) {
   // El cuadrado más grande que cabe en el lienzo, centrado, abarca HALF_SHOT.span.
   const side = Math.min(w, h);
   cam.aspect = w / h;
@@ -34,7 +34,7 @@ function aim(cam, w, h) {
  *   onShot: (rect: { x: number, y: number, side: number }) => void,
  * }} props
  */
-export default function ShotCamera({ request, onShot }) {
+export default function ShotCamera({ request, onShot, album = 'otw' }) {
   const cam = useMemo(() => new PerspectiveCamera(20, 1, 0.05, 40), []);
   const pending = useRef(/** @type {number | null} */ (null));
   const frames = useRef(0);
@@ -58,7 +58,7 @@ export default function ShotCamera({ request, onShot }) {
     }
     const w = gl.domElement.width;
     const h = gl.domElement.height;
-    const side = aim(cam, w, h);
+    const side = aim(cam, w, h, album === 'thriller' ? HALF_SHOT_THRILLER : HALF_SHOT);
     gl.render(scene, cam);
     // Se copia ya: el siguiente fotograma borra el lienzo.
     onShot({ x: (w - side) / 2, y: (h - side) / 2, side });

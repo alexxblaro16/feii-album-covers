@@ -9,7 +9,8 @@ export function flashLevel(flashAt) {
 }
 
 /** Con el flash los calcetines y la camisa se queman de blanco, como en la foto. */
-export function glowWhites(mats, flash) {
+export function glowWhites(mats, flash, darkShirt = false) {
   mats.sock.emissiveIntensity = 0.8 + flash * 3;
-  mats.shirt.emissiveIntensity = flash * 0.7;
+  // La camisa negra de Thriller no brilla.
+  mats.shirt.emissiveIntensity = darkShirt ? 0 : flash * 0.7;
 }

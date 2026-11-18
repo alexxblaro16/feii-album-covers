@@ -96,3 +96,72 @@ export function develop(c, side) {
   halation(c, side);
   coverTone(c, side);
 }
+
+/**
+ * Revelado de Thriller (1982), tomando como modelo esa portada: fondo negro
+ * profundo, el traje blanco con un resplandor suave y amplio alrededor (como
+ * un filtro de difusión de estudio), color neutro (algo frío en las sombras,
+ * cálido en la piel) y una viñeta marcada.
+ */
+export function developThriller(c, side) {
+  // Resplandor más amplio y fuerte que en 1979: lo blanco se derrama.
+  for (const [scale, strength] of [
+    [18, 0.55],
+    [40, 0.45],
+    [90, 0.3],
+  ]) {
+    const n = Math.round(side / scale);
+    const small = document.createElement('canvas');
+    small.width = n;
+    small.height = n;
+    const s = small.getContext('2d');
+    s.drawImage(c.canvas, 0, 0, n, n);
+    const img = s.getImageData(0, 0, n, n);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      const v = Math.max(0, (lum - 150) / 105);
+      d[i] = 250 * v;
+      d[i + 1] = 248 * v;
+      d[i + 2] = 245 * v;
+    }
+    s.putImageData(img, 0, 0);
+    c.save();
+    c.globalCompositeOperation = 'screen';
+    c.globalAlpha = strength;
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(small, 0, 0, side, side);
+    c.restore();
+  }
+  const img = c.getImageData(0, 0, side, side);
+  const d = img.data;
+  const mid = side / 2;
+  for (let y = 0; y < side; y += 1) {
+    for (let x = 0; x < side; x += 1) {
+      const i = (y * side + x) * 4;
+      let r = d[i];
+      let g = d[i + 1];
+      let b = d[i + 2];
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      const t = lum / 255;
+      // Negros profundos y contraste alto en curva.
+      const k = Math.max(0, (t - 0.06) / 0.94);
+      const curve = k * k * (3 - 2 * k) * 0.55 + k * 0.45;
+      const scale = lum > 0.5 ? (curve * 255) / lum : 0;
+      r *= scale;
+      g *= scale;
+      b *= scale;
+      // Sombras algo frías, luces neutras.
+      r -= (1 - t) * 4;
+      b += (1 - t) * 5;
+      const dx = x - mid;
+      const dy = y - mid;
+      const vig = 1 - 0.28 * ((dx * dx + dy * dy) / (mid * mid * 2)) ** 1.2;
+      const grain = (Math.random() - 0.5) * 7 * (1 - Math.abs(t - 0.5));
+      d[i] = r * vig + grain;
+      d[i + 1] = g * vig + grain;
+      d[i + 2] = b * vig + grain;
+    }
+  }
+  c.putImageData(img, 0, 0);
+}

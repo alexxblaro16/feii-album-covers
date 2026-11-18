@@ -60,6 +60,32 @@ export const VIEWS = {
 };
 
 
+/**
+ * El mismo estudio en 1982 (Thriller): Michael está tumbado en el suelo, así
+ * que la portada y el primer plano se miran más bajo; el monitor ya no está y
+ * aparece el tocadiscos de los ochenta junto a la pared izquierda.
+ */
+export const VIEWS_THRILLER = {
+  cover: { label: 'Portada', position: [0, 0.6, 4.2], target: [0, 0.5, 0] },
+  side: { label: 'De lado', position: [2.9, 1.0, 1.7], target: [0, 0.45, 0] },
+  behind: VIEWS.behind,
+  set: VIEWS.set,
+  face: { label: 'Primer plano', position: [0.75, 0.75, 1.2], target: [0.35, 0.68, 0] },
+  tiger: { label: 'El tigre', position: [-0.2, 0.75, 2.5], target: [-0.9, 0.15, 0.85] },
+  monitor: VIEWS.monitor,
+  deck: VIEWS.deck,
+  j5: { label: 'Los Jackson 5 y los premios', position: [0.95, 1.5, 4.75], target: [3.9, 1.3, 4.68] },
+  corner: { label: 'Rincón de 1982', position: [0.9, 1.6, 7.0], target: [3.0, 0.8, 9.5] },
+  jackets: { label: 'Las chaquetas', position: [-0.5, 1.55, 7.05], target: [-3.7, 1.1, 7.05] },
+};
+
+/** Vistas del disco puesto. */
+export const viewsFor = (album) => (album === 'thriller' ? VIEWS_THRILLER : VIEWS);
+
+/** Obstáculos nuevos de 1982: el tocadiscos de los ochenta, la mesa de las Polaroid y el tigre. */
+// En 1982 el burro de vestuario se va al fondo (Studio.jsx).
+export const COLLIDERS_THRILLER = [...COLLIDERS.filter(([x, z]) => !(x === -2.75 && z === 6.1)), [-1.25, 9.75, 0.75], [1.55, 4.4, 0.4], [-2.7, 1.3, 0.35], [-0.9, 0.85, 0.5], [-3.62, 7.05, 0.4], [-3.62, 7.95, 0.4], [-3.62, 6.15, 0.4]];
+
 /** Campo de visión vertical de la cámara (grados). */
 export const FOV = 32;
 
@@ -92,4 +118,14 @@ export function coverPosition(width, height) {
   // Cámara baja, a la altura de la cadera, mirando un poco hacia arriba: casi
   // no se ve suelo, como en la foto.
   return [0, 0.72, MICHAEL.z + d];
+}
+
+/**
+ * Portada de Thriller: la foto es horizontal (Michael tumbado), así que el
+ * cuadrado abarca 2,3 m de ancho a la altura del suelo, con la cámara baja.
+ */
+export function coverPositionThriller(width, height) {
+  const span = 2.3;
+  const d = span / (frameFraction(width, height) * 2 * Math.tan((fovFor(width, height) * Math.PI) / 360));
+  return [0, 0.6, MICHAEL.z + d];
 }

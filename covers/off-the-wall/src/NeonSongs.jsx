@@ -68,7 +68,7 @@ function paint(canvas, texts) {
       ctx.fillText(text, 48, y);
     }
     ctx.shadowBlur = 0;
-    return (width + 96) / W;
+    return text ? (width + 96) / W : 0;
   });
 }
 
@@ -82,8 +82,9 @@ function build(used) {
   const v = new Vector3();
   SIGNS.forEach((s, k) => {
     const aspect = (used[k] * W) / ROW;
-    const w = Math.min(s.max, s.h * aspect);
-    const h = w / aspect;
+    // Un cartel sin texto (Thriller tiene nueve canciones) queda sin tamaño.
+    const w = aspect > 0 ? Math.min(s.max, s.h * aspect) : 0;
+    const h = aspect > 0 ? w / aspect : 0;
     const back = s.wall === 'back';
     const m = new Matrix4().compose(
       new Vector3(back ? s.at : LEFT_X, s.y, back ? BACK_Z : s.at),
@@ -122,7 +123,17 @@ function build(used) {
  *   lang: string,
  * }} props  `current` = canción del disco que suena (−1 si ninguna).
  */
-export default function NeonSongs({ titles, current, level, reduced, onPick, onSign, onHover, lang }) {
+/** Qué canción va en cada cartel (−1: ninguna). Off the Wall: una por cartel, en orden. */
+const SLOTS_OTW = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -1];
+// Thriller: la cara A (cuatro canciones) en la pared del fondo y la cara B
+// (cinco) en la de la izquierda; el quinto cartel del fondo se queda apagado.
+const SLOTS_THRILLER = [0, 1, 2, 3, -1, 4, 5, 6, 7, 8, -1];
+
+export default function NeonSongs({ titles, current, level, reduced, onPick, onSign, onHover, lang, album = 'otw' }) {
+  const slots = album === 'thriller' ? SLOTS_THRILLER : SLOTS_OTW;
+  // El rótulo del rincón: Studio 54 en 1979; en 1982, Westlake, el estudio de
+  // Los Ángeles donde se grabó Thriller.
+  const special = album === 'thriller' ? 'Westlake' : 'Studio 54';
   // Las letras se pintan cuando las fuentes han cargado (si no, saldría otra letra).
   const [fonts, setFonts] = useState(false);
   useEffect(() => {
@@ -141,7 +152,7 @@ export default function NeonSongs({ titles, current, level, reduced, onPick, onS
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = ROW * SIGNS.length;
-    const used = paint(canvas, SIGNS.map((s, k) => ({ text: s.text ?? titles[k], font: s.font })));
+    const used = paint(canvas, SIGNS.map((s, k) => ({ text: s.text ? special : slots[k] >= 0 ? titles[slots[k]] ?? '' : '', font: s.font })));
     const map = new CanvasTexture(canvas);
     map.colorSpace = SRGBColorSpace;
     map.anisotropy = 4;
@@ -150,7 +161,7 @@ export default function NeonSongs({ titles, current, level, reduced, onPick, onS
       map,
       mat: new MeshBasicMaterial({ map, vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }),
     };
-  }, [fonts, titles]);
+  }, [fonts, titles, slots, special]);
   useEffect(
     () => () => {
       res?.geo.dispose();
@@ -172,7 +183,7 @@ export default function NeonSongs({ titles, current, level, reduced, onPick, onS
       let light;
       if (reduced) {
         // Sin parpadeo: la canción que suena encendida y las demás a media luz.
-        light = current < 0 ? 0.92 : k === current ? 1 : 0.32;
+        light = current < 0 ? 0.92 : slots[k] === current ? 1 : 0.32;
       } else {
         const g = glitch.current[k];
         if (t > g.next) {
@@ -184,7 +195,7 @@ export default function NeonSongs({ titles, current, level, reduced, onPick, onS
         light = t < g.off ? 0.1 : hum;
         if (current >= 0 && k < 10) {
           // La que suena: parpadeo rápido (5 veces por segundo) y golpe con los graves.
-          if (k === current) light = (Math.sin(t * Math.PI * 10) > 0 ? 1 : 0.5) + beat * 0.5;
+          if (slots[k] === current) light = (Math.sin(t * Math.PI * 10) > 0 ? 1 : 0.5) + beat * 0.5;
           else light *= 0.3;
         }
       }
@@ -207,13 +218,13 @@ export default function NeonSongs({ titles, current, level, reduced, onPick, onS
         e.stopPropagation();
         // El último rótulo es el de Studio 54: cuenta su historia.
         if (k >= 10) onSign();
-        else onPick(k);
+        else if (slots[k] >= 0) onPick(slots[k]);
       }}
       onPointerMove={(e) => {
         const k = which(e);
         e.stopPropagation();
-        if (k >= 10) onHover(true, lang === 'en' ? 'Studio 54 · click for its story' : 'Studio 54 · pulsa para ver su historia');
-        else onHover(true, `${titles[k]} · ${lang === 'en' ? 'click to play it' : 'pulsa para escucharla'}`);
+        if (k >= 10) onHover(true, `${special} · ${lang === 'en' ? 'click for its story' : 'pulsa para ver su historia'}`);
+        else if (slots[k] >= 0) onHover(true, `${titles[slots[k]]} · ${lang === 'en' ? 'click to play it' : 'pulsa para escucharla'}`);
       }}
       onPointerOut={() => onHover(false)}
     />

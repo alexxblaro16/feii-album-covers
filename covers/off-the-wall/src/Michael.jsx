@@ -22,10 +22,13 @@ import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferG
 import {
   BufferGeometry,
   CapsuleGeometry,
+  CatmullRomCurve3,
   CylinderGeometry,
   CircleGeometry,
   Color,
   ExtrudeGeometry,
+  TorusGeometry,
+  TubeGeometry,
   DoubleSide,
   Euler,
   Float32BufferAttribute,
@@ -40,7 +43,9 @@ import {
   Vector2,
   Vector3,
 } from 'three';
-import { LEG, groovePose, kneeFor, movePose, toeRise } from './dances.js';
+import { LEG, groovePose, kneeFor, moonwalkLoop, movePose, toeRise } from './dances.js';
+import { travelState } from './travel.js';
+import { applyLook } from './looks.js';
 import { MICHAEL } from './set.js';
 import { flashLevel, glowWhites } from './flash.js';
 
@@ -207,6 +212,148 @@ function afroGeometry() {
   return g;
 }
 
+/**
+ * Pelo de 1982 (Thriller): rizos sueltos y brillantes, no una bola. Más
+ * volumen arriba, los lados pegados a la cabeza por encima de las orejas y
+ * por detrás bajan hasta el cuello de la camisa; delante, la frente despejada
+ * con algún rizo suelto. Rizos más grandes (unos 2 cm) que los del afro.
+ */
+function curlsGeometry() {
+  const base = new IcosahedronGeometry(0.15, 20);
+  base.deleteAttribute('normal');
+  base.deleteAttribute('uv');
+  const g = mergeVertices(base);
+  base.dispose();
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i += 1) {
+    const x = p.getX(i);
+    const y = p.getY(i);
+    const z = p.getZ(i);
+    const len = Math.hypot(x, y, z);
+    const nx = x / len;
+    const ny = y / len;
+    const nz = z / len;
+    // Rizos: bultos redondeados de dos tamaños (los grandes marcan cada
+    // mechón y los pequeños el rizo), deterministas para que no se abra la malla.
+    const big = Math.sin(nx * 34.1 + ny * 11.3) * Math.cos(ny * 31.7 - nz * 13.9) * Math.sin(nz * 29.3 + nx * 9.7);
+    const small = Math.sin(nx * 71.3 - nz * 23.1) * Math.cos(ny * 67.9 + nx * 17.3);
+    // Bultos redondos (no picos): se suaviza la onda y se eleva al cuadrado.
+    const tiny = Math.sin(nx * 131.3 + nz * 47.9) * Math.cos(ny * 119.7 - nz * 37.1);
+    const curl = ((big * 0.5 + 0.5) ** 2) * 0.05 + Math.max(0, small) * 0.045 + tiny * 0.012 - 0.02;
+    // Volumen: algo más arriba; los lados más pegados.
+    const top = Math.max(0, ny) * 0.03;
+    const side = Math.abs(nx) * Math.max(0, 0.7 - Math.abs(ny)) * 0.12;
+    // Hueco de la cara: delante y por debajo de la frente no hay pelo (se
+    // mete dentro de la cabeza); la línea del nacimiento del pelo es curva.
+    const front = Math.max(0, Math.min(1, (nz - 0.05) / 0.35));
+    // Frente despejada (sin pico en el centro): el nacimiento del pelo, más alto.
+    const low = Math.max(0, Math.min(1, (0.68 - ny + Math.abs(nx) * 0.22) / 0.3));
+    const face = front * low;
+    let k = (1 + top + side + curl) * (1 - 0.75 * face);
+    // Por detrás y por debajo de las orejas el pelo baja hasta la nuca.
+    let yy = ny * 0.15 * k;
+    if (nz < 0.1 && ny < 0) yy -= Math.min(1, -ny * 1.6) * 0.045 * Math.max(0, 0.1 - nz) * 6;
+    p.setXYZ(i, nx * 0.15 * k, yy, nz * 0.15 * k);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Boca de 1982 (Thriller): la misma cara de Off the Wall, pero con los labios
+ * cerrados, sin sonrisa, como en la portada.
+ */
+function thrillerFaceGeometries() {
+  const sides = [-1, 1];
+  return {
+    // La misma cabeza de 1979 con la cara algo más fina: mandíbula más
+    // estrecha, barbilla pequeña y algo adelantada, pómulos un poco más altos
+    // y nariz más fina con la punta pequeña (no más larga: así no se alarga).
+    headSkin82: fuse([
+      place(new SphereGeometry(0.105, 36, 28), [0, 0, 0], [0, 0, 0], [0.81, 1.11, 0.96]),
+      place(new SphereGeometry(0.1, 32, 22), [0, -0.05, 0.006], [0, 0, 0], [0.63, 0.84, 0.86]),
+      // Barbilla un poco más marcada y adelantada.
+      place(new SphereGeometry(0.032, 20, 14), [0, -0.106, 0.04], [0.25, 0, 0], [0.92, 1.05, 0.88]),
+      ...sides.flatMap((s) => [
+        place(new SphereGeometry(0.03, 12, 10), [s * 0.094, -0.005, -0.005], [0, 0, 0], [0.45, 1, 0.75]),
+        place(new SphereGeometry(0.022, 14, 10), [s * 0.049, -0.006, 0.058], [0, 0, 0], [1, 0.65, 0.42]),
+      ]),
+      place(new SphereGeometry(0.011, 12, 10), [0, 0.006, 0.1], [0, 0, 0], [0.48, 1.55, 0.6]),
+      place(new SphereGeometry(0.0115, 14, 10), [0, -0.016, 0.1], [0, 0, 0], [1.15, 0.7, 0.72]),
+    ]),
+    // Ojos almendrados (la esquina de fuera algo más alta), con el iris oscuro
+    // grande y una línea de pestañas arriba que les da expresión.
+    eyeWhites82: fuse(
+      sides.map((s) => place(new SphereGeometry(0.018, 16, 10), [s * 0.036, 0.015, 0.085], [0, 0, s * 0.13], [1.28, 0.6, 0.58])),
+    ),
+    irises82: fuse(sides.map((s) => place(new SphereGeometry(0.0118, 14, 10), [s * 0.0355, 0.0148, 0.0948], [0, 0, 0], [1, 1, 0.65]))),
+    // Solo las cejas (en 1982 las patillas oscuras de 1979 parecían unos cascos).
+    brows82: fuse(sides.map((s) => place(new CapsuleGeometry(0.003, 0.03, 4, 8), [s * 0.038, 0.049, 0.091], [0, s * 0.25, Math.PI / 2 - s * 0.08]))),
+    // Labios cerrados con forma: el de arriba fino con su arco en el centro y
+    // el de abajo más lleno, los dos pegados a la cara.
+    closedLips: fuse([
+      // Hundidos en la piel: solo asoman lo justo, como en una cara de verdad.
+      place(new SphereGeometry(0.019, 24, 12), [0, -0.0408, 0.087], [0, 0, 0], [1.2, 0.27, 0.4]),
+      place(new SphereGeometry(0.017, 24, 12), [0, -0.0492, 0.0855], [0, 0, 0], [1.1, 0.36, 0.42]),
+    ]),
+  };
+}
+
+/**
+ * Rizos sueltos del pelo de 1982: unos 200 rizos en espiral (cada uno un tubo
+ * fino que da dos vueltas), repartidos por la cabeza con un poco de azar
+ * fijo: arriba y a los lados con volumen, por detrás hasta la nuca, y nada
+ * delante de la cara. Van encima de una base oscura (curlsGeometry) y se
+ * funden en una sola malla: una llamada de dibujo.
+ */
+function ringletsGeometry() {
+  const parts = [];
+  // Espiral de un rizo, a lo largo de y (de 0 a -largo).
+  const helix = (turns, radius, length) => {
+    const pts = [];
+    for (let i = 0; i <= 20; i += 1) {
+      const t = i / 20;
+      const a = t * turns * Math.PI * 2;
+      pts.push(new Vector3(Math.cos(a) * radius * (1 - t * 0.3), -t * length, Math.sin(a) * radius * (1 - t * 0.3)));
+    }
+    return new CatmullRomCurve3(pts);
+  };
+  // Azar fijo: el pelo sale igual en cada visita.
+  let seed = 7;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  const up = new Vector3(0, 1, 0);
+  const count = 230;
+  for (let i = 0; i < count; i += 1) {
+    // Puntos repartidos por la esfera (espiral de Fibonacci).
+    const y = 1 - (i / (count - 1)) * 2;
+    const r = Math.sqrt(1 - y * y);
+    const phi = i * 2.399963;
+    const nx = Math.cos(phi) * r;
+    const nz = Math.sin(phi) * r;
+    const ny = y;
+    // Sin pelo delante de la cara ni por debajo de las orejas por delante.
+    if (nz > 0.25 && ny < 0.5) continue;
+    if (ny < -0.15 && nz > -0.1) continue;
+    if (ny < -0.8) continue;
+    const n = new Vector3(nx, ny, nz).normalize();
+    const out = 1.04 + rnd() * 0.1 + Math.max(0, ny) * 0.12;
+    const pos = new Vector3(nx * 0.096 * out, 0.03 + ny * 0.1 * out, 0.004 + nz * 0.104 * out);
+    const len = 0.03 + rnd() * 0.02 + (ny < 0 ? 0.015 : 0);
+    const curl = new TubeGeometry(helix(1.6 + rnd(), 0.0075 + rnd() * 0.003, len), 18, 0.0034, 5, false);
+    // El rizo sale de la cabeza hacia fuera y cuelga un poco hacia abajo.
+    const dir = n.clone().multiplyScalar(-1).add(new Vector3(0, 0.6, 0)).normalize();
+    const q = new Quaternion().setFromUnitVectors(up, dir);
+    curl.applyMatrix4(new Matrix4().compose(pos, q, new Vector3(1, 1, 1)));
+    parts.push(curl);
+  }
+  const g = mergeGeometries(parts);
+  parts.forEach((x) => x.dispose());
+  return g;
+}
+
 /** Coloca una geometría (posición, giro y escala) para fundirla con otras. */
 function place(geo, pos, rot = [0, 0, 0], scale = [1, 1, 1]) {
   const m = new Matrix4().compose(
@@ -367,6 +514,9 @@ function useMaterials() {
       lips: new MeshStandardMaterial({ color: '#5e2f22', roughness: 0.45 }),
       eyeWhite: new MeshStandardMaterial({ color: '#f1ece4', roughness: 0.25 }),
       iris: new MeshStandardMaterial({ color: '#1c100a', roughness: 0.2 }),
+      // Thriller: pañuelo de leopardo del bolsillo y hebilla plateada del cinturón.
+      pocket: new MeshStandardMaterial({ color: '#b98a4e', roughness: 0.8 }),
+      buckle: new MeshStandardMaterial({ color: '#d6d8dc', roughness: 0.25, metalness: 0.9 }),
     }),
     [],
   );
@@ -441,6 +591,9 @@ function useGeometries() {
       bow: bowGeometry(),
       ...trouserGeometries(),
       afro: afroGeometry(),
+      curls: curlsGeometry(),
+      ringlets: ringletsGeometry(),
+      ...thrillerFaceGeometries(),
       ...headGeometries(),
     };
   }, []);
@@ -514,17 +667,31 @@ function Arm({ side, mats, armRef, elbowRef, wristRef, thumbRef }) {
  * Cabeza. Las piezas pequeñas de la cara se funden en una malla por material
  * (headGeometries): así la cabeza cuesta 7 llamadas de dibujo en vez de ~25.
  */
-function Head({ mats, geos }) {
+function Head({ mats, geos, hairPos, hairScale, thriller }) {
   return (
     <group>
-      <mesh geometry={geos.headSkin} material={mats.skin} castShadow />
-      <mesh geometry={geos.eyeWhites} material={mats.eyeWhite} />
-      <mesh geometry={geos.irises} material={mats.iris} />
-      <mesh geometry={geos.hairBits} material={mats.hair} />
-      <mesh geometry={geos.lips} material={mats.lips} />
-      <mesh geometry={geos.teeth} material={mats.teeth} />
-      {/* Afro redondo que rodea la cabeza y enmarca la cara (el hueco va en la geometría). */}
-      <mesh geometry={geos.afro} position={[0, 0.03, -0.012]} scale={[0.96, 1.16, 1.04]} material={mats.hair} castShadow />
+      {/* La misma cara en los dos discos; en 1982, con la boca cerrada. */}
+      <mesh geometry={thriller ? geos.headSkin82 : geos.headSkin} material={mats.skin} castShadow />
+      <mesh geometry={thriller ? geos.eyeWhites82 : geos.eyeWhites} material={mats.eyeWhite} />
+      <mesh geometry={thriller ? geos.irises82 : geos.irises} material={mats.iris} />
+      <mesh geometry={thriller ? geos.brows82 : geos.hairBits} material={mats.hair} />
+      {thriller ? (
+        <>
+          {/* 1982: boca cerrada, sin sonrisa (labios hundidos en la piel). */}
+          <mesh geometry={geos.closedLips} material={mats.lips} />
+          {/* Los rizos de 1982, brillantes, hasta el cuello de la camisa. */}
+          {/* Base oscura y, encima, los rizos uno a uno. */}
+          <mesh geometry={geos.curls} position={[0, 0.03, 0.012]} scale={[0.95, 0.94, 1.0]} material={mats.hair} />
+          <mesh geometry={geos.ringlets} material={mats.hair} castShadow />
+        </>
+      ) : (
+        <>
+          <mesh geometry={geos.lips} material={mats.lips} />
+          <mesh geometry={geos.teeth} material={mats.teeth} />
+          {/* Afro redondo que rodea la cabeza y enmarca la cara (el hueco va en la geometría). */}
+          <mesh geometry={geos.afro} position={hairPos} scale={hairScale} material={mats.hair} castShadow />
+        </>
+      )}
     </group>
   );
 }
@@ -558,6 +725,70 @@ function Leg({ side, mats, geos, legRef, kneeRef, footRef }) {
   );
 }
 
+/**
+ * Postura tumbada de la portada de Thriller: recostado en el suelo sobre el
+ * codo izquierdo, las piernas estiradas hacia su derecha (la izquierda de la
+ * foto) con las rodillas algo dobladas, y las manos juntas en el cinturón.
+ * Es una interpretación propia de la postura, no un calco de la foto.
+ * `body*` mueven todo el cuerpo (el giro es alrededor de los pies).
+ */
+const RECLINE = {
+  // Todo el cuerpo: posición (m) y giro (rad); el giro va alrededor de los pies.
+  // Como en la portada: sentado con el culo apoyado del todo en el suelo, las
+  // caderas de lado (las piernas hacia la izquierda de la foto: la de delante
+  // estirada y apoyada en el suelo, la del lado de la pared doblada),
+  // el tronco echado atrás, la mano izquierda apoyada en el suelo y el brazo
+  // derecho recto con la mano en el muslo.
+  bodyPos: [0.05, -0.8, 0],
+  bodyRot: [0, -1.7, 0],
+  torso: [-0.88, 1.25, -0.05],
+  // Girada un poco hacia la cámara, para que la mire.
+  head: [0.6, 0.36, 0.04],
+  // La mano izquierda apoyada en el suelo; el brazo derecho recto, pegado al
+  // tronco, con la mano apoyada en el muslo.
+  armL: [0.3, 0, 0.22],
+  elbowL: [-1.65, 0, 0],
+  wristL: [0.4, 0, 0],
+  armR: [-0.35, 0, -0.12],
+  elbowR: [-0.15, 0, 0],
+  wristR: [0.3, 0, 0],
+  // La pierna del lado de la pared, doblada con la rodilla arriba y el pie
+  // plano en el suelo.
+  legR: [-2.25, 0, 0.12],
+  kneeR: [1.55, 0, 0],
+  footR: [0.7, 0, 0],
+  // La de delante, estirada y apoyada en el suelo de la cadera al talón.
+  legL: [-1.47, 0, -0.04],
+  kneeL: [0.05, 0, 0],
+  footL: [-0.15, 0, 0],
+};
+
+
+/**
+ * Para que la cabeza mire a la cámara de la portada (se reutiliza en cada
+ * fotograma, sin crear objetos).
+ */
+const LOOK = {
+  cam: new Vector3(0, 0.62, 4.2),
+  // Giro hacia su derecha, ladeo hacia su hombro izquierdo y barbilla baja (rad).
+  // Cuánto del giro hacia la cámara se aplica (0..1).
+  amount: 0.5,
+  // De frente (sin perfil) y con la barbilla algo levantada para que se vea.
+  turn: 0,
+  tilt: -0.04,
+  chin: -0.2,
+  pos: new Vector3(),
+  euler: new Euler(),
+  want: new Quaternion(),
+  parent: new Quaternion(),
+};
+
+// Solo en desarrollo: la postura y la mirada se pueden ajustar desde la consola.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  window.__recline = RECLINE;
+  window.__look = LOOK;
+}
+
 /** Altura de la cadera sobre el suelo que da una pierna apoyada. */
 function legSupport(pitch, knee, roll, toe) {
   return (LEG.thigh * Math.cos(pitch) + LEG.shin * Math.cos(pitch + knee)) * Math.cos(roll) + LEG.ankle + toeRise(toe);
@@ -582,9 +813,18 @@ function blend(a, b, w) {
  *   onHover: (on: boolean, name?: string) => void,
  * }} props
  */
-export default function Michael({ move, flashAt, groove, playing, reduced, level, onStep, onHover, lang }) {
+export default function Michael({ move, flashAt, groove, playing, reduced, level, onStep, onHover, lang, album = 'otw', travel = null }) {
   const mats = useMaterials();
   const geos = useGeometries();
+  // Ropa del disco puesto: se cambian los colores de los materiales compartidos.
+  useEffect(() => applyLook(mats, album), [album, mats]);
+  const thriller = album === 'thriller';
+  // Pelo: el afro redondo de 1979 o los rizos cortos de 1982.
+  const hairScale = thriller ? [0.86, 0.98, 0.95] : [0.96, 1.16, 1.04];
+  const hairPos = thriller ? [0, 0.012, -0.016] : [0, 0.03, -0.012];
+  const root = useRef(null);
+  // Cuánto está tumbado (0 de pie, 1 en la postura de Thriller).
+  const lying = useRef(album === 'thriller' ? 1 : 0);
   const body = useRef(null);
   const torso = useRef(null);
   const jacket = useRef(null);
@@ -615,12 +855,22 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
 
   useFrame(({ clock }, rawDt) => {
     const t = clock.elapsedTime;
-    glowWhites(mats, flashLevel(flashAt));
+    glowWhites(mats, flashLevel(flashAt), thriller);
     let p = movePose(move, reduced);
+    // Viaje de un disco a otro: moonwalk por el plató (manda sobre todo lo demás).
+    const tr = travelState(travel, performance.now() / 1000);
+    if (root.current) {
+      root.current.position.set(tr ? tr.x : MICHAEL.x, 0, tr ? tr.z : MICHAEL.z);
+      root.current.rotation.y = tr ? tr.yaw : 0;
+      root.current.visible = tr ? tr.visible : true;
+    }
+    if (tr?.walk) p = moonwalkLoop(reduced ? 0.2 : tr.t * 1.6);
     // Baile de fondo con la música: sigue el tempo de la canción. Un paso de
     // baile (botón o clic) tiene prioridad; al acabar, se vuelve al ritmo.
     if (groove) lastGroove.current = groove;
-    const wantGroove = groove && !reduced && p.amount === 0 ? 1 : 0;
+    // En Thriller se queda recostado con la música (solo asiente al ritmo): se
+    // levanta para los bailes de los botones.
+    const wantGroove = groove && !reduced && p.amount === 0 && !tr && !thriller ? 1 : 0;
     grooveAmt.current += (wantGroove - grooveAmt.current) * Math.min(1, Math.min(rawDt, 0.1) * 2.5);
     if (p.amount === 0 && grooveAmt.current > 0.01 && lastGroove.current) {
       p = groovePose(clock.elapsedTime, lastGroove.current, beat.current, grooveAmt.current);
@@ -742,10 +992,63 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
       skirt.current.scale.set(1 + cl.flare, 1, FLAT * (1 + cl.flare));
     }
     body.current.rotation.z = hip;
+
+    // Thriller: en reposo se queda tumbado como en la portada; para bailar o
+    // irse se levanta (y se vuelve a tumbar al acabar). Mientras dura el viaje
+    // va de pie; al llegar se tumba despacio.
+    const wantLie = thriller && !tr?.walk && !(tr && !tr.done) && p.amount < 0.02 && grooveAmt.current < 0.05 ? 1 : 0;
+    lying.current += (wantLie - lying.current) * (reduced ? 1 : Math.min(1, dt * (wantLie ? 1.6 : 4)));
+    const w = lying.current * lying.current * (3 - 2 * lying.current);
+    if (w > 0.001) {
+      const L = (o, key, v) => {
+        o[key] += (v - o[key]) * w;
+      };
+      const R2 = RECLINE;
+      const set3 = (obj, v) => ['x', 'y', 'z'].forEach((k, i) => L(obj, k, v[i]));
+      set3(body.current.position, R2.bodyPos);
+      set3(body.current.rotation, R2.bodyRot);
+      set3(torso.current.rotation, R2.torso);
+      set3(head.current.rotation, R2.head);
+      set3(armL.current.rotation, R2.armL);
+      set3(elbowL.current.rotation, R2.elbowL);
+      set3(wristL.current.rotation, R2.wristL);
+      set3(armR.current.rotation, R2.armR);
+      set3(elbowR.current.rotation, R2.elbowR);
+      set3(wristR.current.rotation, R2.wristR);
+      set3(legR.current.rotation, R2.legR);
+      set3(kneeR.current.rotation, R2.kneeR);
+      set3(footR.current.rotation, R2.footR);
+      set3(legL.current.rotation, R2.legL);
+      set3(kneeL.current.rotation, R2.kneeL);
+      set3(footL.current.rotation, R2.footL);
+      // La cabeza, recta (sin ladearse con el tronco) y mirando a la cámara de
+      // la portada, como en la foto: se calcula su giro en el mundo y se pasa
+      // al del cuello.
+      const hq = head.current;
+      hq.parent.updateWorldMatrix(true, false);
+      hq.getWorldPosition(LOOK.pos);
+      const dx = LOOK.cam.x - LOOK.pos.x;
+      const dz = LOOK.cam.z - LOOK.pos.z;
+      const dy = LOOK.cam.y - LOOK.pos.y;
+      // Como en la portada: casi recta, algo girada hacia su derecha (la
+      // izquierda de la foto), un poco ladeada hacia su hombro izquierdo y con
+      // la barbilla algo baja, mirando a cámara.
+      LOOK.euler.set(-Math.atan2(dy, Math.hypot(dx, dz)) * 0.5 + LOOK.chin, Math.atan2(dx, dz) + LOOK.turn, LOOK.tilt, 'YXZ');
+      LOOK.want.setFromEuler(LOOK.euler);
+      hq.parent.getWorldQuaternion(LOOK.parent);
+      LOOK.want.premultiply(LOOK.parent.invert());
+      // Solo una parte del giro: la cabeza mira hacia la cámara pero sigue
+      // encajada en el cuello (girarla del todo la separaba de los hombros).
+      hq.quaternion.slerp(LOOK.want, w * LOOK.amount);
+      // Las manos juntas en el cinturón: los pulgares a la vista.
+      thumbR.current.scale.setScalar(1);
+      thumbL.current.scale.setScalar(1);
+    }
   });
 
   return (
     <group
+      ref={root}
       position={[MICHAEL.x, 0, MICHAEL.z]}
       onClick={(e) => {
         e.stopPropagation();
@@ -778,13 +1081,37 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
           {/* Pajarita de mariposa y su nudo, algo inclinada hacia delante. */}
           {/* Pegada a la camisa, justo debajo del cuello (a 1,3 cm de la tela: antes
               quedaba a 4 cm y de lado se veía flotando). */}
-          <group position={[0, 0.568, jacketRadius(0.568) * FLAT + 0.013]} rotation={[-0.12, 0, 0]}>
+          <group visible={!thriller} position={[0, 0.568, jacketRadius(0.568) * FLAT + 0.013]} rotation={[-0.12, 0, 0]}>
             {/* Sin sombra: el mapa de sombras la pintaba como una raya dentada en la camisa. */}
             <mesh geometry={geos.bow} material={mats.bow} />
             <mesh position={[0, 0, 0.007]} scale={[1, 1.35, 0.75]} material={mats.bow}>
               <sphereGeometry args={[0.012, 12, 8]} />
             </mesh>
           </group>
+          {/* Thriller: pañuelo de leopardo asomando del bolsillo del pecho (lado
+              izquierdo de Michael) y hebilla plateada en el cinturón negro. */}
+          {thriller ? (
+            <>
+              <mesh position={[0.112, 0.43, jacketRadius(0.43) * FLAT * 0.93]} rotation={[-0.1, 0.55, 0.2]} material={mats.pocket}>
+                <boxGeometry args={[0.05, 0.03, 0.012]} />
+              </mesh>
+              <mesh position={[0, WAIST - 0.006, 0.142 * 0.72 + 0.004]} material={mats.buckle}>
+                <boxGeometry args={[0.038, 0.026, 0.008]} />
+              </mesh>
+              {/* Tapetas de los dos bolsillos de abajo de la chaqueta. */}
+              {[-1, 1].map((sd) => (
+                <mesh key={sd} position={[sd * 0.105, WAIST - 0.09, jacketRadius(WAIST - 0.09) * FLAT * 0.86]} rotation={[0, sd * 0.62, 0]} material={mats.satin}>
+                  <boxGeometry args={[0.085, 0.022, 0.008]} />
+                </mesh>
+              ))}
+              {/* El cuello de la camisa negra, abierto por encima de las solapas. */}
+              {[-1, 1].map((sd) => (
+                <mesh key={`c${sd}`} position={[sd * 0.052, 0.565, jacketRadius(0.565) * FLAT + 0.006]} rotation={[0.25, sd * 0.35, sd * -0.75]} material={mats.shirt}>
+                  <boxGeometry args={[0.06, 0.035, 0.006]} />
+                </mesh>
+              ))}
+            </>
+          ) : null}
           {/* Cuello de la camisa y cuello. */}
           <mesh position={[0, 0.612, 0.005]} material={mats.shirt}>
             <cylinderGeometry args={[0.054, 0.06, 0.075, 24, 1, true]} />
@@ -794,8 +1121,10 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
           </mesh>
           <Arm side={1} mats={mats} armRef={armL} elbowRef={elbowL} wristRef={wristL} thumbRef={thumbL} />
           <Arm side={-1} mats={mats} armRef={armR} elbowRef={elbowR} wristRef={wristR} thumbRef={thumbR} />
-          <group ref={head} position={[0, 0.74, 0.008]} scale={0.9}>
-            <Head mats={mats} geos={geos} />
+          {/* En 1982 la cabeza va algo más alta, para que se vea el cuello por
+              encima de la camisa (si no, se hundía en el cuello abierto). */}
+          <group ref={head} position={thriller ? [0, 0.78, 0.018] : [0, 0.74, 0.008]} scale={0.9}>
+            <Head mats={mats} geos={geos} hairPos={hairPos} hairScale={hairScale} thriller={thriller} />
           </group>
         </group>
       </group>

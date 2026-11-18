@@ -9,24 +9,11 @@
 // a la posición real de la canción.
 
 const API = 'https://open.spotify.com/embed/iframe-api/v1';
-const ALBUM_ID = '2ZytN2cY4Zjrr9ukb2rqTP';
-export const SPOTIFY_URL = `https://open.spotify.com/album/${ALBUM_ID}`;
-// Las diez canciones del disco en Spotify, en orden: así se puede elegir una
-// desde la lista de la página o desde los neones, y saber cuál suena.
-const TRACK_IDS = [
-  '46eu3SBuFCXWsPT39Yg3tJ',
-  '7oOOI85fVQvVnK5ynNMdW7',
-  '6BdiFsPMPkSEEO4fFXFVWX',
-  '78XG7U0UueeC86XpzF9O7f',
-  '3zYpRGnnoegSpt3SguSo3W',
-  '1nCV2d1RAch7t2kRmwet5N',
-  '6NGsHLZYGVAkXTFr75WWnn',
-  '1HibhNhwk2tljwC4BGGLXV',
-  '0CeE7kE8zAnfKIVpdmOaJl',
-  '6aCs8gCrp4yrwvw7ylhau2',
-];
-// Tempo aproximado del disco (casi todo va entre 110 y 125 BPM).
-const BPM = 118;
+import { ALBUMS } from './albums.js';
+
+/** Dirección del disco en Spotify (para los enlaces del panel). */
+export const spotifyUrl = (id) => `https://open.spotify.com/album/${id}`;
+export const SPOTIFY_URL = spotifyUrl(ALBUMS.otw.spotifyId);
 
 let apiPromise = null;
 
@@ -62,7 +49,11 @@ function loadApi() {
  * }} o  `onTrack` avisa de qué canción del disco suena (−1 si no se sabe) y
  *       `onProgress` de por dónde va (0..1).
  */
-export async function createSpotify(host, { onPlaying, onTrack, onProgress, height }) {
+export async function createSpotify(host, { onPlaying, onTrack, onProgress, height, album = ALBUMS.otw }) {
+  // Disco cargado: Off the Wall o Thriller (se cambia con setAlbum).
+  let ALBUM_ID = album.spotifyId;
+  let TRACK_IDS = album.spotifyTracks;
+  let BPM = album.bpm;
   const api = await loadApi();
   // La API sustituye el elemento por el iframe: se le da uno propio.
   const slot = document.createElement('div');
@@ -121,6 +112,16 @@ export async function createSpotify(host, { onPlaying, onTrack, onProgress, heig
     /** Pone una canción del disco (0..9) y la hace sonar. */
     playTrack,
     /** Vuelve a cargar el disco entero, con su lista de canciones. */
+    /** Cambia de disco (sin sonar): `a` es uno de ALBUMS. */
+    setAlbum(a) {
+      if (a.spotifyId === ALBUM_ID) return;
+      ALBUM_ID = a.spotifyId;
+      TRACK_IDS = a.spotifyTracks;
+      BPM = a.bpm;
+      advanced = true;
+      setCurrent(-1);
+      controller.loadUri(`spotify:album:${ALBUM_ID}`);
+    },
     showAlbum() {
       setCurrent(-1);
       controller.loadUri(`spotify:album:${ALBUM_ID}`);

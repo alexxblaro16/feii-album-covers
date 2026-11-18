@@ -1,24 +1,20 @@
-// Dos guiños a 1979, hechos con código:
+// Un guiño a 1979, hecho con código (Muscles, la boa, está en Muscles.jsx):
 //
-//  - Muscles, la boa constrictor que Michael tenía de mascota, enroscada en
-//    la silla de director (al pulsarla se abre su foto: Hotspots.jsx).
 //  - Un rincón de Studio 54 al fondo a la derecha: cortinas de terciopelo
 //    rojo, postes dorados con su cordón, una mesa alta con mantel de
 //    terciopelo, una botella y copas de champán, y una bola de discoteca que
 //    gira colgada del techo.
 //
-// Rendimiento: cuatro llamadas de dibujo. Todo lo opaco que no se mueve (el
-// cuerpo de la boa, terciopelo, postes, mesa y botella) va fundido en una
-// malla con el color en los vértices; el cuello y la cabeza de la boa son
-// otra (se mecen con la música), las copas otra, y la bola, la cuarta (gira).
+// Rendimiento: tres llamadas de dibujo. Todo lo opaco que no se mueve
+// (terciopelo, postes, mesa y botella) va fundido en una malla con el color en
+// los vértices; las copas, otra, y la bola, la tercera (gira).
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BoxGeometry, CatmullRomCurve3, Color, CylinderGeometry, DoubleSide, Euler, Float32BufferAttribute, LatheGeometry, Matrix4, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, Quaternion, SphereGeometry, TubeGeometry, Vector2, Vector3 } from 'three';
 
-// La silla de director (Studio.jsx) y el rincón de la bola.
-const CHAIR = { position: [-1.55, 0, 6.3], rotY: Math.PI - 0.35 };
+// El rincón de la bola.
 const TABLE = [3.45, 9.55];
 const BALL = [3.3, 3.25, 9.3];
 
@@ -46,80 +42,6 @@ function paint(geo, pick) {
   return geo;
 }
 
-function smooth(a, b, x) {
-  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-}
-
-/**
- * Muscles: la cola cuelga del asiento, el cuerpo da dos vueltas y cuarto
- * enroscado encima y el cuello se levanta con la cabeza mirando a Michael.
- * Coordenadas de la silla (el asiento está a 0,53 m; el frente es +z).
- */
-function snake() {
-  const pts = [
-    [0.1, 0.34, 0.27],
-    [0.11, 0.47, 0.225],
-    [0.13, 0.555, 0.15],
-  ];
-  const turns = 2.25;
-  for (let i = 0; i <= 44; i += 1) {
-    const t = i / 44;
-    const a = 0.5 + t * turns * Math.PI * 2;
-    const r = 0.155 - 0.075 * t;
-    pts.push([Math.cos(a) * r, 0.565 + 0.13 * t, Math.sin(a) * r * 0.8]);
-  }
-  pts.push([-0.035, 0.775, 0.075], [-0.015, 0.845, 0.125], [0, 0.865, 0.2]);
-  const curve = new CatmullRomCurve3(pts.map((p) => new Vector3(...p)));
-  const rings = 240;
-  const sides = 10;
-  const body = new TubeGeometry(curve, rings, 1, sides, false);
-  // El tubo nace con radio 1: cada anillo se encoge a su grosor (cola fina,
-  // cuerpo grueso y cuello algo más estrecho).
-  const p = body.attributes.position;
-  const centre = new Vector3();
-  for (let i = 0; i <= rings; i += 1) {
-    const u = i / rings;
-    curve.getPointAt(u, centre);
-    const r = (0.007 + 0.028 * smooth(0, 0.3, u)) * (1 - 0.42 * smooth(0.8, 0.97, u));
-    for (let j = 0; j <= sides; j += 1) {
-      const k = i * (sides + 1) + j;
-      p.setXYZ(k, centre.x + (p.getX(k) - centre.x) * r, centre.y + (p.getY(k) - centre.y) * r, centre.z + (p.getZ(k) - centre.z) * r);
-    }
-  }
-  body.computeVertexNormals();
-  // Dibujo de boa: fondo tostado con sillas de montar marrones, y la cola rojiza.
-  paint(body, (k) => {
-    const u = Math.floor(k / (sides + 1)) / rings;
-    const saddle = Math.sin(u * 150) > 0.25;
-    if (u < 0.14) return saddle ? '#7a2c16' : '#c9a473';
-    return saddle ? '#4a2d1b' : '#bd9c6c';
-  });
-  // El cuerpo enroscado se queda quieto; el cuello y la cabeza van aparte, en
-  // una malla que gira sobre la base del cuello para bailar con la música. Los
-  // dos trozos se pisan un par de anillos para que no se vea la junta.
-  const cut = Math.round(0.86 * rings);
-  const per = sides * 6;
-  const all = Array.from(body.index.array);
-  const still = body.clone();
-  still.setIndex(all.slice(0, (cut + 3) * per));
-  const neck = body.clone();
-  neck.setIndex(all.slice(cut * per));
-  body.dispose();
-  const head = [0, 0.868, 0.225];
-  const moving = mergeGeometries([
-    neck,
-    piece(new SphereGeometry(0.03, 20, 14), '#b08f60', head, [0.15, 0, 0], [0.95, 0.62, 1.5]),
-    ...[-1, 1].map((s) => piece(new SphereGeometry(0.0055, 8, 6), '#0c0806', [s * 0.019, 0.878, 0.243])),
-    // La lengua, fina y roja, asomando.
-    piece(new BoxGeometry(0.004, 0.0015, 0.03), '#a3151f', [0, 0.862, 0.28]),
-  ]);
-  const m = new Matrix4().compose(new Vector3(...CHAIR.position), new Quaternion().setFromEuler(new Euler(0, CHAIR.rotY, 0)), new Vector3(1, 1, 1));
-  // Base del cuello (ya en el plató): la malla móvil se centra en ese punto.
-  const pivot = curve.getPointAt(0.87).applyMatrix4(m);
-  moving.applyMatrix4(m).translate(-pivot.x, -pivot.y, -pivot.z);
-  return { still: still.applyMatrix4(m), moving, pivot };
-}
 
 /** Cortina de terciopelo con pliegues, colgada de una barra dorada. */
 function curtain(width, position, rotY) {
@@ -147,7 +69,7 @@ function post(x, z) {
 }
 
 /** Todo lo opaco que no se mueve, fundido en una geometría. */
-function solids(coil) {
+function solids() {
   const posts = [
     [2.45, 9.7],
     [3.1, 8.45],
@@ -165,7 +87,6 @@ function solids(coil) {
   });
   const [tx, tz] = TABLE;
   const parts = [
-    coil,
     ...curtain(1.8, [3.4, 10.4], Math.PI),
     ...curtain(2.0, [4.2, 9.45], -Math.PI / 2),
     ...posts.flatMap(([x, z]) => post(x, z)),
@@ -242,13 +163,10 @@ function mirrorBall() {
  *   level: () => number,
  * }} props
  */
-export default function Disco54({ reduced, playing, groove, level }) {
+export default function Disco54({ reduced }) {
   const res = useMemo(() => {
-    const boa = snake();
     return {
-      solids: solids(boa.still),
-      neck: boa.moving,
-      pivot: boa.pivot,
+      solids: solids(),
       glasses: glasses(),
       ball: mirrorBall(),
       mats: {
@@ -261,7 +179,6 @@ export default function Disco54({ reduced, playing, groove, level }) {
   useEffect(
     () => () => {
       res.solids.dispose();
-      res.neck.dispose();
       res.glasses.dispose();
       res.ball.dispose();
       Object.values(res.mats).forEach((m) => m.dispose());
@@ -269,34 +186,14 @@ export default function Disco54({ reduced, playing, groove, level }) {
     [res],
   );
   const ball = useRef(/** @type {import('three').Mesh | null} */ (null));
-  const neck = useRef(/** @type {import('three').Mesh | null} */ (null));
-  useFrame(({ clock }, raw) => {
+  useFrame((_, raw) => {
     const dt = Math.min(raw, 0.1);
     // Media vuelta cada cinco segundos (quieta si se pide menos movimiento).
     if (ball.current && !reduced) ball.current.rotation.y += dt * 0.63;
-    // Muscles: con música mece la cabeza de lado a lado al compás (un vaivén
-    // cada dos tiempos) y cabecea con los graves; sin música apenas se mueve.
-    const n = neck.current;
-    if (!n || reduced) return;
-    const t = clock.elapsedTime;
-    let y = Math.sin(t * 0.6) * 0.05;
-    let x = 0;
-    let z = 0;
-    if (playing) {
-      const phase = t * ((groove?.bpm ?? 112) / 60) * Math.PI;
-      y = Math.sin(phase) * 0.42;
-      x = Math.sin(phase * 2) * 0.08 - level() * 0.14;
-      z = Math.cos(phase) * 0.1;
-    }
-    const k = 1 - Math.exp(-dt * 6);
-    n.rotation.x += (x - n.rotation.x) * k;
-    n.rotation.y += (y - n.rotation.y) * k;
-    n.rotation.z += (z - n.rotation.z) * k;
   });
   return (
     <group>
       <mesh geometry={res.solids} material={res.mats.solids} />
-      <mesh ref={neck} geometry={res.neck} material={res.mats.solids} position={res.pivot} />
       <mesh geometry={res.glasses} material={res.mats.glasses} />
       <mesh ref={ball} geometry={res.ball} material={res.mats.ball} position={BALL} />
     </group>

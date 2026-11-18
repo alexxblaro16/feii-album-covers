@@ -20,6 +20,13 @@ import Jackson5 from './Jackson5.jsx';
 import Hotspots from './Hotspots.jsx';
 import NeonSongs from './NeonSongs.jsx';
 import Disco54 from './Disco54.jsx';
+import Muscles from './Muscles.jsx';
+import ThrillerSet from './ThrillerSet.jsx';
+import ModernDeck from './ModernDeck.jsx';
+import TigerCub from './TigerCub.jsx';
+import Jackets from './Jackets.jsx';
+import StudioFeed from './StudioFeed.jsx';
+import CornerScreens from './CornerScreens.jsx';
 import { walkTo } from './cameraEvents.js';
 
 const BACKGROUND = '#120c0a';
@@ -80,19 +87,21 @@ const StudioEnvironment = memo(function StudioEnvironment() {
  *   onShot: (rect: { x: number, y: number, side: number }) => void,
  * }} props
  */
-export default function Scene({ view, move, flashAt, groove, playing, level, reduced, onZone, onDeck, onStep, onHover, onInspect, lang, shotRequest, onShot, record, records, onRecord, onOpenDeck, titles, song, onSong, onSign }) {
+export default function Scene({ view, move, flashAt, groove, playing, level, reduced, onZone, onDeck, onStep, onHover, onInspect, lang, shotRequest, onShot, record, records, onRecord, onOpenDeck, titles, song, onSong, onSign, album = 'otw', travel = null }) {
+  // El mismo estudio en 1979 (Off the Wall) o en 1982 (Thriller).
+  const thriller = album === 'thriller';
   return (
     <>
-      <color attach="background" args={[BACKGROUND]} />
-      <fog attach="fog" args={[BACKGROUND, 9, 19]} />
+      <color attach="background" args={[thriller ? '#060506' : BACKGROUND]} />
+      <fog attach="fog" args={thriller ? ['#060506', 6, 15] : [BACKGROUND, 9, 19]} />
 
       {/* Luz de relleno general, cálida arriba y oscura abajo. */}
-      <hemisphereLight args={['#ffe6cc', '#2e1a12', 0.5]} />
+      <hemisphereLight args={thriller ? ['#d9dde6', '#0c0a0a', 0.08] : ['#ffe6cc', '#2e1a12', 0.5]} />
       {/* Luz principal (la ventana de luz de la izquierda): la única que hace sombra. */}
       <directionalLight
         position={[-0.75, 3.4, 5.4]}
-        intensity={2.7}
-        color="#ffd6ab"
+        intensity={thriller ? 1.7 : 2.7}
+        color={thriller ? '#fff1e2' : '#ffd6ab'}
         castShadow
         shadow-radius={5}
         shadow-mapSize={[2048, 2048]}
@@ -106,10 +115,12 @@ export default function Scene({ view, move, flashAt, groove, playing, level, red
         shadow-camera-far={14}
       />
       {/* Relleno frío desde la derecha y contraluz que separa a Michael de la pared. */}
-      <directionalLight position={[3.2, 2.2, 3.4]} intensity={0.55} color="#cbd6ff" />
-      <directionalLight position={[0.6, 3.4, -1.6]} intensity={0.9} color="#ffcf9e" />
+      <directionalLight position={[3.2, 2.2, 3.4]} intensity={thriller ? 0.12 : 0.55} color="#cbd6ff" />
+      {/* Contraluz: en 1982, frío y suave, como el borde de luz del pelo en la portada. */}
+      <directionalLight position={[0.6, 3.4, -1.6]} intensity={thriller ? 0.7 : 0.9} color={thriller ? '#dfe7ff' : '#ffcf9e'} />
       {/* Luz de techo sobre el plató, para que se vea al ponerse detrás de Michael. */}
-      <pointLight position={[0.4, 3.2, 3.2]} intensity={6} distance={7} decay={1.6} color="#ffe2c2" />
+      {/* En 1982 no hay luz de techo: dejaba una mancha gris en el papel negro. */}
+      {thriller ? null : <pointLight position={[0.4, 3.2, 3.2]} intensity={6} distance={7} decay={1.6} color="#ffe2c2" />}
 
       {/* Entorno para los reflejos del raso, el cuero y el metal. Se pinta una vez. */}
       <StudioEnvironment />
@@ -131,19 +142,35 @@ export default function Scene({ view, move, flashAt, groove, playing, level, red
       </mesh>
 
       <BrickWall playing={playing} level={level} reduced={reduced} />
-      <WallWindow />
-      <WallTitle />
-      <Michael move={move} flashAt={flashAt} groove={groove} playing={playing} reduced={reduced} level={level} onStep={onStep} onHover={onHover} lang={lang} />
+      {thriller ? null : <WallWindow />}
+      {thriller ? null : <WallTitle />}
+      <Michael move={move} flashAt={flashAt} groove={groove} playing={playing} reduced={reduced} level={level} onStep={onStep} onHover={onHover} lang={lang} album={album} travel={travel} />
       <FlashLight flashAt={flashAt} />
-      <Studio flash={flashAt} />
-      <LiveMonitor />
-      <SpotifyMirror onHover={onHover} lang={lang} />
+      <Studio flash={flashAt} album={album} />
+      {thriller ? null : <LiveMonitor />}
+      {thriller ? null : <SpotifyMirror onHover={onHover} lang={lang} />}
       <Jackson5 />
-      <Disco54 reduced={reduced} playing={playing} groove={groove} level={level} />
-      <Hotspots onHover={onHover} onInspect={onInspect} lang={lang} />
+      {thriller ? null : <Disco54 reduced={reduced} />}
+      {/* Muscles, la boa, en la silla de director: en 1979 y en 1982. */}
+      <Muscles reduced={reduced} playing={playing} groove={groove} level={level} />
+      {thriller ? (
+        <>
+          <ThrillerSet flash={flashAt} playing={playing} level={level} reduced={reduced} />
+          {/* El monitor en directo y las Polaroid con fotos hechas en el plató. */}
+          <StudioFeed flash={flashAt} reduced={reduced} />
+          {/* Las pantallas de la recreativa y de la tele, animadas. */}
+          <CornerScreens reduced={reduced} />
+          {/* El tigre bebé, tumbado junto a las piernas de Michael. */}
+          <TigerCub center={[-0.9, 0.85]} radius={[0.42, 0.22]} reduced={reduced} onHover={onHover} onInspect={onInspect} lang={lang} />
+          {/* Las chaquetas de «Beat It» y «Thriller» en sus maniquíes, con su placa. */}
+          <Jackets lang={lang} onHover={onHover} onInspect={onInspect} />
+          <ModernDeck playing={playing} record={record} records={records} onRecord={onRecord} onOpenDeck={onOpenDeck} onHover={onHover} lang={lang} />
+        </>
+      ) : null}
+      <Hotspots onHover={onHover} onInspect={onInspect} lang={lang} album={album} />
       {/* Después de las cajas invisibles: los neones se pulsan por delante de ellas. */}
-      <NeonSongs titles={titles} current={song} level={level} reduced={reduced} onPick={onSong} onSign={onSign} onHover={onHover} lang={lang} />
-      <RecordPlayer
+      <NeonSongs titles={titles} current={song} level={level} reduced={reduced} onPick={onSong} onSign={onSign} onHover={onHover} lang={lang} album={album} />
+      {thriller ? null : <RecordPlayer
         playing={playing}
         record={record}
         records={records}
@@ -151,9 +178,9 @@ export default function Scene({ view, move, flashAt, groove, playing, level, red
         onOpenDeck={onOpenDeck}
         onHover={onHover}
         lang={lang}
-      />
-      <CameraRig view={view} reduced={reduced} onZone={onZone} onDeck={onDeck} />
-      <ShotCamera request={shotRequest} onShot={onShot} />
+      />}
+      <CameraRig view={view} reduced={reduced} onZone={onZone} onDeck={onDeck} album={album} />
+      <ShotCamera request={shotRequest} onShot={onShot} album={album} />
     </>
   );
 }

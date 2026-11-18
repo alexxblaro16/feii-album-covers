@@ -20,6 +20,11 @@ export const RECORDS = {
   abc: { id: 1442885957, title: 'ABC', artist: 'Jackson 5', year: 1970, label: '#2a7bc9', groove: { bpm: 112, feel: 'funk' } },
   xmas: { id: 1452949481, title: 'Christmas Album', artist: 'Jackson 5', year: 1970, label: '#2f7a3a', groove: { bpm: 96, feel: 'smooth' } },
   jacksons: { id: 200605281, title: 'The Jacksons', artist: 'The Jacksons', year: 1976, label: '#c9962a', groove: { bpm: 118, feel: 'disco' } },
+  // El disco de 1982 y los tres de los Jackson 5 del tocadiscos moderno.
+  thriller: { id: 269572838, title: 'Thriller', artist: 'Michael Jackson', year: 1982, label: '#d8342b', groove: { bpm: 118, feel: 'funk' }, deck: 'modern' },
+  third: { id: 1443186631, title: 'Third Album', artist: 'Jackson 5', year: 1970, label: '#e07a1f', groove: { bpm: 104, feel: 'smooth' }, deck: 'modern' },
+  maybe: { id: 1442861308, title: 'Maybe Tomorrow', artist: 'Jackson 5', year: 1971, label: '#2a5fa8', groove: { bpm: 100, feel: 'smooth' }, deck: 'modern' },
+  windows: { id: 1442992520, title: "Lookin' Through the Windows", artist: 'Jackson 5', year: 1972, label: '#3f8a4c', groove: { bpm: 112, feel: 'funk' }, deck: 'modern' },
 };
 
 /** Canciones de un disco (título y fragmento de 30 s), en orden; se guardan en caché. */

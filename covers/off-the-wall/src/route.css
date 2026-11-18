@@ -1665,3 +1665,116 @@ html.route-off-the-wall body {
     display: none;
   }
 }
+
+/* Botón de la esquina para cambiar de disco: Thriller (negro y blanco, como
+   la portada de 1982) u Off the Wall (granate y crema, como la de 1979). */
+.otw__album {
+  position: absolute;
+  right: 18px;
+  /* Por encima de la barra de la galería (anterior / todos / siguiente), que
+     si no tapa el botón. */
+  bottom: calc(var(--otw-nav, 56px) + 16px);
+  z-index: 30;
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-width: 132px;
+  min-height: 44px;
+  padding: 10px 18px 12px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 14px;
+  cursor: pointer;
+  font: 400 1.7rem/1 'Yellowtail', cursive;
+  color: #f7efe2;
+  background: linear-gradient(135deg, #050506 0%, #1a1a1d 60%, #2b2a2e 100%);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.otw__album span {
+  font: 600 0.72rem/1 'Oswald', sans-serif;
+  letter-spacing: 0.28em;
+  color: #ff9a76;
+}
+
+.otw__album--otw {
+  background: linear-gradient(135deg, #5c1612 0%, #8a2420 60%, #b4553a 100%);
+}
+
+.otw__album--otw span {
+  color: #f7e9cf;
+}
+
+.otw__album:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.6), 0 0 0 2px rgb(255 154 118 / 0.45);
+}
+
+.otw__album:focus-visible {
+  outline: 3px solid #ffd27a;
+  outline-offset: 3px;
+}
+
+/* En el móvil el botón sube por encima de la cruceta. */
+@media (hover: none) and (pointer: coarse) {
+  .otw__album {
+    bottom: calc(var(--otw-nav, 0px) + 168px);
+    right: 12px;
+    min-width: 112px;
+    font-size: 1.4rem;
+  }
+}
+
+/* Fundido a negro entre los dos discos, con el rótulo de los años. */
+.otw__fade {
+  position: absolute;
+  inset: 0;
+  z-index: 34;
+  display: grid;
+  place-items: center;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.otw__fade.is-on {
+  opacity: 1;
+}
+
+.otw__years {
+  margin: 0;
+  color: #f7e9cf;
+  font: 400 clamp(2.2rem, 7vw, 4.6rem)/1 'Yellowtail', cursive;
+  text-shadow: 0 0 30px rgb(255 140 90 / 0.5);
+  animation: otw-years 1.7s ease both;
+}
+
+@keyframes otw-years {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  30%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otw__fade {
+    transition: none;
+  }
+  .otw__years {
+    animation: none;
+  }
+}
+
+/* Fichas sin foto (las de 1982 que no tienen imagen): solo el texto. */
+.otw__photo figure.is-text {
+  max-width: min(520px, 92vw);
+}

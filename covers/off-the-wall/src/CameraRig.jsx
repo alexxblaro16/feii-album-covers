@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { CatmullRomCurve3, Vector3 } from 'three';
-import { BOUNDS, COLLIDERS, MICHAEL, VIEWS, coverPosition, fovFor } from './set.js';
+import { BOUNDS, COLLIDERS, COLLIDERS_THRILLER, MICHAEL, VIEWS, coverPosition, coverPositionThriller, fovFor, viewsFor } from './set.js';
 
 const WALK_SPEED = 2.0; // metros por segundo
 const RUN = 2.6; // multiplicador con Mayúsculas
@@ -52,8 +52,8 @@ function zoneOf(cam, target) {
  * Si la cámara está en el rincón del tocadiscos y del cuadro de los Jackson 5:
  * cerca de la mesa y mirando hacia ella (solo ahí sale el menú del tocadiscos).
  */
-function nearDeck(cam, target) {
-  const [dx, , dz] = VIEWS.deck.target;
+function nearDeck(cam, target, which = VIEWS.deck) {
+  const [dx, , dz] = which.target;
   const tx = dx - cam.x;
   const tz = dz - cam.z;
   const dist = Math.hypot(tx, tz);
@@ -71,7 +71,9 @@ function nearDeck(cam, target) {
  *   onDeck?: (near: boolean) => void,
  * }} props
  */
-export default function CameraRig({ view, reduced, onZone, onDeck }) {
+export default function CameraRig({ view, reduced, onZone, onDeck, album = 'otw' }) {
+  const thriller = album === 'thriller';
+  const colliders = thriller ? COLLIDERS_THRILLER : COLLIDERS;
   const atDeck = useRef(false);
   const controls = useRef(null);
   const size = useThree((s) => s.size);
@@ -90,9 +92,11 @@ export default function CameraRig({ view, reduced, onZone, onDeck }) {
   // Al pedir una vista, se fija el destino; useFrame hace el viaje.
   useEffect(() => {
     if (!view) return;
-    const v = VIEWS[view.name];
+    const v = viewsFor(album)[view.name] ?? VIEWS[view.name];
+    if (!v) return;
     // La portada depende del tamaño de la pantalla (encuadre cuadrado).
-    const pos = view.name === 'cover' ? coverPosition(size.width, size.height) : v.position;
+    const cover = thriller ? coverPositionThriller : coverPosition;
+    const pos = view.name === 'cover' ? cover(size.width, size.height) : v.position;
     goal.current = { position: new Vector3(...pos), target: new Vector3(...v.target) };
     // Solo al pedir otra vista: un cambio de tamaño no debe mover la cámara.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -305,7 +309,7 @@ export default function CameraRig({ view, reduced, onZone, onDeck }) {
     }
     // ...ni a través del atrezo: cada objeto empuja la cámara fuera de su círculo.
     if (p.y < 2) {
-      for (const [cx, cz, r] of COLLIDERS) {
+      for (const [cx, cz, r] of colliders) {
         const ox = p.x - cx;
         const oz = p.z - cz;
         const od = Math.hypot(ox, oz);

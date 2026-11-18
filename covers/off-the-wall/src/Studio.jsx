@@ -25,6 +25,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   PlaneGeometry,
+  SphereGeometry,
   TorusGeometry,
   TubeGeometry,
   Vector3,
@@ -50,6 +51,8 @@ function makeMaterials() {
     lamp: new MeshStandardMaterial({ color: '#ff3b2e', emissive: '#ff2a1f', emissiveIntensity: 2.2 }),
     // Tela difusora de las ventanas de luz: emite, y el destello la sube.
     diffuser: new MeshStandardMaterial({ color: '#ffffff', emissive: '#fff4e2', emissiveIntensity: 1.6, side: DoubleSide }),
+    // 1982: bombillas del espejo de maquillaje, encendidas.
+    bulb: new MeshStandardMaterial({ color: '#fff3d6', emissive: '#ffd99a', emissiveIntensity: 2.4 }),
   };
 }
 
@@ -118,8 +121,9 @@ function flag(parent, position, rotationY) {
   part(g, new BoxGeometry(0.5, 0.62, 0.012), 'black', [0.62, 1.42, 0]);
 }
 
-/** Burro de vestuario con ruedas, esmóquines negros y camisas blancas en perchas. */
-function wardrobe(parent, position, rotationY) {
+/** Burro de vestuario con ruedas, esmóquines negros y camisas blancas en perchas
+ * (en 1982, al revés: trajes blancos y camisas negras). */
+function wardrobe(parent, position, rotationY, suit = 'black', shirtMat = 'cloth') {
   const g = node(parent, position, [0, rotationY, 0]);
   for (const x of [-0.62, 0.62]) {
     part(g, new CylinderGeometry(0.015, 0.015, 1.55, 8), 'metal', [x, 0.83, 0]);
@@ -132,9 +136,50 @@ function wardrobe(parent, position, rotationY) {
   [-0.47, -0.3, -0.13, 0.06, 0.24, 0.44].forEach((x, i) => {
     const shirt = i % 3 === 1;
     // La prenda cuelga perpendicular a la barra: hombros, cuerpo y el gancho.
-    part(g, new BoxGeometry(0.07, shirt ? 0.72 : 0.8, shirt ? 0.36 : 0.44), shirt ? 'cloth' : 'black', [x, shirt ? 1.18 : 1.14, 0]);
+    part(g, new BoxGeometry(0.07, shirt ? 0.72 : 0.8, shirt ? 0.36 : 0.44), shirt ? shirtMat : suit, [x, shirt ? 1.18 : 1.14, 0]);
     part(g, new TorusGeometry(0.03, 0.005, 4, 10, Math.PI), 'metal', [x, 1.6, 0], [0, Math.PI / 2, 0]);
   });
+}
+
+/** 1982: octabox, una ventana de luz grande de ocho lados sobre su pie. */
+function octabox(parent, position, rotationY) {
+  const g = node(parent, position, [0, rotationY, 0]);
+  stand(g, 1.75);
+  const head = node(g, [0, 1.85, 0], [0.15, 0, 0]);
+  part(head, new CylinderGeometry(0.62, 0.1, 0.42, 8, 1, true), 'black', [0, 0, -0.22], [Math.PI / 2, 0, 0]);
+  part(head, new CircleGeometry(0.6, 8), 'diffuser', [0, 0, -0.005], [0, 0, Math.PI / 8]);
+}
+
+/** 1982: tocador de maquillaje con el espejo rodeado de bombillas y su taburete. */
+function vanity(parent, position, rotationY) {
+  const g = node(parent, position, [0, rotationY, 0]);
+  part(g, new BoxGeometry(0.9, 0.04, 0.42), 'wood', [0, 0.74, 0]);
+  for (const x of [-0.4, 0.4]) part(g, new BoxGeometry(0.05, 0.72, 0.38), 'wood', [x, 0.36, 0]);
+  part(g, new BoxGeometry(0.82, 0.62, 0.03), 'black', [0, 1.13, -0.19]);
+  part(g, new PlaneGeometry(0.66, 0.48), 'silver', [0, 1.13, -0.17]);
+  for (let i = 0; i < 6; i += 1) {
+    part(g, new SphereGeometry(0.028, 10, 8), 'bulb', [-0.36 + i * 0.144, 1.42, -0.16]);
+  }
+  for (let i = 0; i < 3; i += 1) {
+    for (const x of [-0.39, 0.39]) part(g, new SphereGeometry(0.028, 10, 8), 'bulb', [x, 0.93 + i * 0.16, -0.16]);
+  }
+  // Brochas y un bote encima del tocador, y el taburete delante.
+  part(g, new CylinderGeometry(0.03, 0.03, 0.12, 10), 'cloth', [0.25, 0.82, 0.05]);
+  part(g, new CylinderGeometry(0.17, 0.17, 0.04, 16), 'canvas', [0, 0.5, 0.42]);
+  part(g, new CylinderGeometry(0.02, 0.02, 0.48, 8), 'metal', [0, 0.24, 0.42]);
+}
+
+/** 1982: ventilador de estudio sobre un pie, para mover el pelo y la ropa. */
+function fan(parent, position, rotationY) {
+  const g = node(parent, position, [0, rotationY, 0]);
+  stand(g, 0.9);
+  const head = node(g, [0, 1.0, 0], [0.1, 0, 0]);
+  part(head, new TorusGeometry(0.3, 0.012, 6, 32), 'metal');
+  part(head, new CylinderGeometry(0.06, 0.06, 0.08, 14), 'body', [0, 0, -0.05], [Math.PI / 2, 0, 0]);
+  for (let i = 0; i < 3; i += 1) {
+    part(head, new BoxGeometry(0.08, 0.26, 0.01), 'body', [Math.sin((i * Math.PI * 2) / 3) * 0.13, Math.cos((i * Math.PI * 2) / 3) * 0.13, 0], [0, 0.3, (-i * Math.PI * 2) / 3]);
+  }
+  for (const r of [0, Math.PI / 2]) part(head, new CylinderGeometry(0.004, 0.004, 0.6, 4), 'metal', [0, 0, 0.02], [0, 0, r]);
 }
 
 /** Silla de director de madera con lona roja, mirando a Michael. */
@@ -183,7 +228,8 @@ function cable(parent) {
 }
 
 /** Monta el plató y funde las piezas por material. */
-function bakeStudio() {
+function bakeStudio(album) {
+  const thriller = album === 'thriller';
   const root = new Group();
   softbox(root, [-2.1, 0, 2.7], Math.PI - 0.66);
   softbox(root, [2.3, 0, 2.2], Math.PI + 0.82);
@@ -192,9 +238,20 @@ function bakeStudio() {
   part(root, new CircleGeometry(0.42, 40), 'silver', [-1.7, 0.42, 2.0], [-0.35, 2.44, 0]);
   // Atrezo detrás de las cámaras, siempre a más de 1,3 m del centro para no
   // tapar a Michael desde la cámara de la portada (en un móvil se aleja ~8,6 m).
-  umbrella(root, [2.9, 0, 3.3], -2.4);
-  flag(root, [-3.7, 0, 3.3], 0.9);
-  wardrobe(root, [-2.75, 0, 6.1], Math.PI / 2 - 0.25);
+  // El mismo estudio en 1982 cambia algo de atrezo: un octabox en vez del
+  // paraguas, el tocador de maquillaje en vez de la bandera, un ventilador y,
+  // en el burro, trajes blancos con camisas negras.
+  if (thriller) {
+    octabox(root, [2.9, 0, 3.3], -2.4);
+    vanity(root, [-3.75, 0, 3.3], Math.PI / 2);
+    fan(root, [-2.7, 0, 1.3], Math.PI - 1.1);
+    // El burro va al fondo, junto a la salida, para que se vean los maniquíes.
+    wardrobe(root, [-1.25, 0, 9.75], 0, 'cloth', 'black');
+  } else {
+    umbrella(root, [2.9, 0, 3.3], -2.4);
+    flag(root, [-3.7, 0, 3.3], 0.9);
+    wardrobe(root, [-2.75, 0, 6.1], Math.PI / 2 - 0.25);
+  }
   part(root, new CircleGeometry(1.15, 32), 'rug', [-1.75, 0.004, 6.6], [-Math.PI / 2, 0, 0]);
   directorChair(root, [-1.55, 0, 6.3], Math.PI - 0.35);
   // La mesa del tocadiscos es interactiva: va aparte, en RecordPlayer.jsx.
@@ -223,8 +280,8 @@ function bakeStudio() {
 }
 
 /** @param {{ flash: number | null }} props  `flash` = instante (s) de la última foto. */
-export default function Studio({ flash }) {
-  const res = useMemo(() => ({ mats: makeMaterials(), geos: bakeStudio() }), []);
+export default function Studio({ flash, album = 'otw' }) {
+  const res = useMemo(() => ({ mats: makeMaterials(), geos: bakeStudio(album) }), [album]);
   useEffect(
     () => () => {
       Object.values(res.mats).forEach((m) => m.dispose());

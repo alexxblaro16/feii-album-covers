@@ -253,6 +253,46 @@ export const POSES = {
   },
 };
 
+/**
+ * Moonwalk sin fin, para cruzar el plató (el viaje de un disco a otro): los
+ * mismos pasos que `glide`, pero sin retroceso propio (el desplazamiento lo
+ * pone quien lo usa) y repetidos mientras dure. `t` en segundos.
+ */
+export function moonwalkLoop(t) {
+  const knee = kneeFor(toeRise(GLIDE.toe));
+  const s = Math.floor(t / GLIDE.step);
+  const f = (t - s * GLIDE.step) / GLIDE.step;
+  const right = s % 2 === 0;
+  const slide = -GLIDE.angle + 2 * GLIDE.angle * f;
+  const plant = -slide;
+  const up = ease(f / 0.18);
+  const kOn = knee * up;
+  const kOff = knee * (1 - up);
+  const swing = (right ? 1 : -1) * Math.sin(f * Math.PI) * 0.22;
+  return {
+    ...ZERO,
+    amount: 1,
+    lean: 0.06,
+    armRZ: -0.14,
+    armLZ: 0.14,
+    elbowR: -0.9,
+    elbowL: -0.9,
+    legR: (right ? slide : plant) - (right ? kOff : kOn) / 2,
+    legL: (right ? plant : slide) - (right ? kOn : kOff) / 2,
+    kneeR: right ? kOff : kOn,
+    kneeL: right ? kOn : kOff,
+    toeR: right ? GLIDE.toe * (1 - up) : GLIDE.toe * up,
+    toeL: right ? GLIDE.toe * up : GLIDE.toe * (1 - up),
+    armRX: 0.06 + swing,
+    armLX: 0.06 - swing,
+    tilt: (right ? 1 : -1) * 0.03,
+    headX: Math.sin(f * Math.PI) * 0.04,
+  };
+}
+
+/** Velocidad del moonwalk de viaje (m/s). */
+export const TRAVEL_SPEED = 0.9;
+
 /** Postura del paso en curso (o la neutra si no hay ninguno). */
 export function movePose(move, reduced) {
   if (!move) return ZERO;

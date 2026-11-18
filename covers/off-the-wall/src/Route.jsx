@@ -10,17 +10,19 @@ import BudgetProbe from '../../../src/lib/BudgetProbe.jsx';
 import { withinCeiling } from '../../../src/lib/budget.js';
 import usePrefersReducedMotion from '../../../src/lib/usePrefersReducedMotion.js';
 import { CEILING } from './budget.js';
-import { GLIDE, MOVES, TRACK_GROOVES } from './dances.js';
-import { develop } from './photo.js';
-import { ALBUM_URL, RECORDS, createPlayer, loadRecord } from './player.js';
-import { SPOTIFY_URL, createSpotify } from './spotify.js';
+import { GLIDE, MOVES } from './dances.js';
+import { develop, developThriller } from './photo.js';
+import { RECORDS, createPlayer, loadRecord } from './player.js';
+import { createSpotify, spotifyUrl } from './spotify.js';
+import { ALBUMS, otherAlbum } from './albums.js';
+import { SPIN_TIME, TRAVEL_EXIT } from './travel.js';
 import { createVoice } from './voice.js';
 import Scene from './Scene.jsx';
 import Intro from './Intro.jsx';
 import Ready from './Ready.jsx';
 import { LANGS, STR, initialLang, saveLang } from './i18n.js';
-import { VIEWS, fovFor } from './set.js';
-import { tour as cameraTour } from './cameraEvents.js';
+import { fovFor, viewsFor } from './set.js';
+import { goTo as flyTo, tour as cameraTour } from './cameraEvents.js';
 
 /**
  * Recorrido de entrada: paradas de la cámara (posición, punto al que mira y
@@ -52,6 +54,29 @@ const TOUR = [
   // ...y de cerca.
   { time: 19.4, position: [0.3, 1.5, 1.9], target: [0.05, 1.35, 0] },
 ];
+/**
+ * Recorrido de cine del estudio en 1982 (Thriller): el mismo barrido por el
+ * plató, parando en lo que ha cambiado, y al final hasta Michael tumbado.
+ */
+const TOUR_THRILLER = [
+  { time: 0, position: [0.7, 2.3, 2.6], target: [0.6, 2.6, 10.4] },
+  { time: 3.2, position: [0.7, 2.3, 3.6], target: [0.6, 2.6, 10.4] },
+  // El rincón de 1982: la recreativa, la tele y el radiocasete.
+  { time: 5.8, position: [1.3, 2.2, 7.0], target: [3.2, 1.0, 9.6] },
+  // El tocadiscos de los ochenta y la balda de los premios.
+  { time: 8.2, position: [0.8, 1.9, 6.2], target: [3.4, 1.0, 4.9] },
+  // Las chaquetas de los vídeos.
+  { time: 10.4, position: [-1.3, 1.8, 7.6], target: [-3.7, 1.2, 7.5] },
+  // La cara B en neón, en la pared izquierda.
+  { time: 12.6, position: [3.0, 2.5, 6.0], target: [-4.2, 2.7, 6.1] },
+  // El tocador de maquillaje y el ventilador.
+  { time: 15.0, position: [-0.9, 1.7, 4.0], target: [-3.3, 1.0, 2.6] },
+  // Hacia Michael, tumbado sobre el fondo negro...
+  { time: 17.2, position: [1.2, 1.2, 3.2], target: [0.1, 0.5, 0] },
+  // ...y de cerca, con el tigre.
+  { time: 19.4, position: [0.5, 0.75, 1.7], target: [0.0, 0.45, 0.1] },
+];
+const TOUR_THRILLER_CAPTIONS = [0.8, 6.2, 8.8, 11.0, 13.2, 15.6];
 /** Segundo en el que aparece cada rótulo del recorrido (i18n `tour`). */
 const TOUR_CAPTIONS = [0.8, 4.2, 6.8, 9.0, 11.2, 13.6];
 /** Cuándo sale la fecha (con Michael ya cerca) y cuándo acaba todo, en ms. */
@@ -60,7 +85,7 @@ const TOUR_END = 21600;
 import './route.css';
 
 const SCOPE = 'route-off-the-wall';
-const FONTS = 'https://fonts.googleapis.com/css2?family=Yellowtail&family=Oswald:wght@400;600&family=Architects+Daughter&family=Monoton&display=swap';
+const FONTS = 'https://fonts.googleapis.com/css2?family=Yellowtail&family=Mr+Dafoe&family=Oswald:wght@400;600&family=Architects+Daughter&family=Monoton&display=swap';
 /**
  * Fotos de las fichas (se enlazan, no se copian al repositorio): Michael con
  * Muscles, su boa, y la fachada de Studio 54 (Wikimedia Commons, CC BY-SA 3.0).
@@ -71,6 +96,29 @@ const CARDS = {
   studio54: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/54-ny.jpg/960px-54-ny.jpg',
   // El disco de oro del cuadro: la portada de The Jacksons (1976), la misma del tocadiscos.
   gold: new URL('../public/the-jacksons.jpg', import.meta.url).href,
+  // Thriller (1982). Los Grammy de Kenny Rogers de la misma ceremonia de 1980
+  // (Wikimedia Commons, CC BY 2.0): no es el de Michael, y la ficha lo dice.
+  grammy:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Grammy_Award_trophies_-_Kenny_Rogers_%22The_Gambler%22_%28cropped%29.jpg/960px-Grammy_Award_trophies_-_Kenny_Rogers_%22The_Gambler%22_%28cropped%29.jpg',
+  // Fotos de la sesión con el tigre bebé (enlazadas, no se copian al repositorio).
+  tiger: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhXG89c_5I9BoCmzhEfyqPrrdBBQrJACtkOFbi4CgenkBPmu57vI5yqemT&s=10',
+  // Fotos del rincón de 1982 y de la cámara de las Polaroid (Wikimedia
+  // Commons, con su licencia libre; se enlazan, no se copian).
+  polaroid: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Polaroid_SX-70_camera.jpg/960px-Polaroid_SX-70_camera.jpg',
+  arcade: 'https://upload.wikimedia.org/wikipedia/commons/8/80/Asteroids_upright_cabinet.jpg',
+  tvconsole: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Atari-2600-Wood-4Sw-Set.jpg/960px-Atari-2600-Wood-4Sw-Set.jpg',
+  boombox: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Sharp_GF-999_Boombox_-_Exhibit_at_Edo_Tokyo_Museum_%28edited%29.jpeg/960px-Sharp_GF-999_Boombox_-_Exhibit_at_Edo_Tokyo_Museum_%28edited%29.jpeg',
+  walkman: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Original_Sony_Walkman_TPS-L2.JPG/960px-Original_Sony_Walkman_TPS-L2.JPG',
+  // Un guante de Michael expuesto en el EMP de Seattle (CC BY 2.0).
+  billiejean: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Michael_Jackson_glove_%288229092427%29.jpg/960px-Michael_Jackson_glove_%288229092427%29.jpg',
+  rubik: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Rubiks_cube_by_keqs.jpg/960px-Rubiks_cube_by_keqs.jpg',
+  backdrop: null,
+  westlake: null,
+  // Las chaquetas de los vídeos de 1983 (Wikimedia Commons, CC BY 2.0).
+  beatit:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Michael_Jackson_Beat_It_Jacket_%286043162620%29.jpg/960px-Michael_Jackson_Beat_It_Jacket_%286043162620%29.jpg',
+  thrillerJacket:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Michael_Jackson_Thriller_Jacket%2C_Grammy_Museum_2020.jpg/960px-Michael_Jackson_Thriller_Jacket%2C_Grammy_Museum_2020.jpg',
 };
 const DPR = [1, 1.5];
 /** Mi perfil de GitHub: lo enlaza la firma de la foto. */
@@ -125,18 +173,8 @@ const PAD = [
 const padKey = (dir, on) => window.dispatchEvent(new CustomEvent('otw-key', { detail: { dir, on } }));
 const zoomBy = (n) => window.dispatchEvent(new CustomEvent('otw-zoom', { detail: n }));
 
-const TRACKS = [
-  "Don't Stop 'Til You Get Enough",
-  'Rock with You',
-  "Workin' Day and Night",
-  'Get on the Floor',
-  'Off the Wall',
-  'Girlfriend',
-  "She's Out of My Life",
-  "I Can't Help It",
-  "It's the Falling in Love",
-  'Burn This Disco Out',
-];
+/** Fichas de 1982 (Thriller): se abren al pulsar su objeto. */
+const THRILLER_CARDS = ['tiger', 'grammy', 'polaroid', 'backdrop', 'westlake', 'beatit', 'thrillerJacket', 'arcade', 'tvconsole', 'boombox', 'walkman', 'rubik', 'billiejean'];
 
 export default function Route() {
   const reduced = usePrefersReducedMotion();
@@ -153,6 +191,15 @@ export default function Route() {
     document.documentElement.lang = lang;
   }, [lang]);
   const [view, setView] = useState(/** @type {{ name: string, at: number } | null} */ (null));
+  // Disco puesto: Off the Wall (1979) o Thriller (1982), el mismo estudio tres años después.
+  const [album, setAlbum] = useState(/** @type {'otw' | 'thriller'} */ ('otw'));
+  const ALB = ALBUMS[album];
+  const thriller = album === 'thriller';
+  // Viaje de Michael de un plató a otro haciendo el moonwalk (travel.js).
+  const [travel, setTravel] = useState(/** @type {{ kind: 'exit' | 'enter', at: number } | null} */ (null));
+  // Fundido a negro y rótulo de «tres años después» entre los dos discos.
+  const [fade, setFade] = useState(false);
+  const [years, setYears] = useState('');
   const [zone, setZone] = useState('cover');
   const [move, setMove] = useState(/** @type {{ name: keyof typeof MOVES, at: number } | null} */ (null));
   // De dónde sale la música: Spotify (por defecto) o los fragmentos de Apple.
@@ -168,7 +215,7 @@ export default function Route() {
   // Disco puesto: Off the Wall o uno de los de la mesa del tocadiscos.
   const [record, setRecord] = useState('otw');
   const [recordTracks, setRecordTracks] = useState(/** @type {string[]} */ ([]));
-  const songs = record === 'otw' ? TRACKS : recordTracks;
+  const songs = record === album ? ALB.tracks : recordTracks;
   // Submenú del tocadiscos (secundario: aparte del reproductor principal). Solo
   // sale en el rincón del tocadiscos y del cuadro de los Jackson 5 (`atDeck`):
   // se abre al llegar y desaparece al irse, para no estorbar en el resto del
@@ -263,13 +310,32 @@ export default function Route() {
   useEffect(() => {
     recordNow.current = record;
   }, [record]);
+  // Pone en el reproductor el disco del plató (sus fragmentos de Apple):
+  // Off the Wall es la lista de siempre; Thriller va en la cola del reproductor.
+  const albumNow = useRef(album);
   useEffect(() => {
-    if (!spotifyOn || recordNow.current === 'otw') return;
-    music.current?.stop();
-    music.current?.setQueue(null);
-    setRecord('otw');
-    setRecordTracks([]);
-  }, [spotifyOn]);
+    albumNow.current = album;
+  }, [album]);
+  const loadMain = useCallback(async (key) => {
+    const player = music.current;
+    if (!player) return false;
+    player.stop();
+    setRecord(key);
+    if (key === 'otw') {
+      player.setQueue(null);
+      setRecordTracks([]);
+      return true;
+    }
+    const list = await loadRecord(key);
+    if (!list.length) return false;
+    player.setQueue(list.map((t) => t.url));
+    setRecordTracks(list.map((t) => t.title));
+    return true;
+  }, []);
+  useEffect(() => {
+    if (!spotifyOn || recordNow.current === albumNow.current) return;
+    loadMain(albumNow.current);
+  }, [spotifyOn, loadMain]);
 
   // La etiqueta sigue al cursor sin volver a pintar React en cada movimiento.
   useEffect(() => {
@@ -361,8 +427,14 @@ export default function Route() {
   const [touring, setTouring] = useState(false);
   const touringNow = useRef(false);
   const [caption, setCaption] = useState('');
+  // Cambio de disco en marcha: cómo terminarlo de golpe («Saltar» o cualquier gesto).
+  const switching = useRef(/** @type {(() => void) | null} */ (null));
   const endTour = useCallback(() => {
     if (!touringNow.current) return;
+    if (switching.current) {
+      switching.current();
+      return;
+    }
     touringNow.current = false;
     tourTimers.current.forEach((id) => window.clearTimeout(id));
     tourTimers.current = [];
@@ -401,6 +473,105 @@ export default function Route() {
     });
     at(TOUR_END, endTour);
   };
+
+  const switchAlbum = () => {
+    if (touringNow.current) return;
+    const to = otherAlbum(album);
+    const at = (ms, fn) => {
+      const id = window.setTimeout(fn, ms);
+      tourTimers.current.push(id);
+      timers.current.push(id);
+    };
+    const now = () => performance.now() / 1000;
+    music.current?.stop();
+    spotify.current?.pause();
+    setPanelOpen(false);
+    setMusicOpen(false);
+    setDeckOpen(false);
+    setCard(null);
+    touringNow.current = true;
+    setTouring(true);
+    let swapped = false;
+    let loading = Promise.resolve(false);
+    // En negro: cambia el disco, la ropa de Michael y lo que suena.
+    const swap = () => {
+      if (swapped) return;
+      swapped = true;
+      setAlbum(to);
+      spotify.current?.setAlbum(ALBUMS[to]);
+      loading = loadMain(to);
+    };
+    const arrive = (ok) => {
+      if (ok) music.current?.play(to === 'thriller' ? 3 : 0);
+    };
+    // Terminar ya: todo en su sitio, Michael en su postura y la cámara en la portada.
+    switching.current = () => {
+      cameraTour(null);
+      tourTimers.current.forEach((id) => window.clearTimeout(id));
+      tourTimers.current = [];
+      switching.current = null;
+      touringNow.current = false;
+      swap();
+      setTravel(null);
+      setFade(false);
+      setYears('');
+      setCaption('');
+      setTouring(false);
+      setView((v) => ({ name: 'cover', at: (v?.at ?? 0) + 1 }));
+    };
+    if (reduced) {
+      swap();
+      switching.current();
+      return;
+    }
+    // 1. Se gira y se va haciendo el moonwalk; la cámara se aparta para verlo.
+    setCaption(T.leaving);
+    setTravel({ kind: 'exit', at: now() + 0.3 });
+    flyTo([1.9, 1.75, 5.2], [-1.6, 0.9, -0.4]);
+    const exitMs = (TRAVEL_EXIT + 0.3) * 1000;
+    // La vuelta suena con el chirrido de la suela y acaba con un «¡Ji-ji!»; a
+    // mitad del moonwalk, otro.
+    at(300, () => voice.current?.play('squeak'));
+    at((0.3 + SPIN_TIME) * 1000, () => voice.current?.play('hee'));
+    at((0.3 + SPIN_TIME) * 1000 + (exitMs - (0.3 + SPIN_TIME) * 1000) * 0.5, () => voice.current?.play('hee'));
+    at(exitMs - 600, () => setFade(true));
+    // 2. En negro: «tres años después» (o «1979» al volver). Cambia el disco y
+    // Michael ya está en su sitio del otro plató (en Thriller, tumbado).
+    at(exitMs + 300, () => {
+      swap();
+      setTravel(null);
+      setCaption('');
+      setYears(to === 'thriller' ? T.yearsLater : '1979');
+    });
+    // 3. Vuelve la luz con una secuencia de cine por el estudio (la del
+    // principio en Off the Wall; una parecida en el de 1982), con su música,
+    // sus rótulos y, al final, la fecha del disco con Michael de cerca.
+    const start = exitMs + 2000;
+    const stops = to === 'thriller' ? TOUR_THRILLER : TOUR;
+    const times = to === 'thriller' ? TOUR_THRILLER_CAPTIONS : TOUR_CAPTIONS;
+    const texts = to === 'thriller' ? T.tourThriller : T.tour;
+    at(start, () => {
+      setYears('');
+      cameraTour(stops);
+      setFade(false);
+      loading.then((ok) => {
+        if (!ok || !music.current) return;
+        music.current.setAutoNext(false);
+        arrive(ok);
+      });
+    });
+    texts.forEach((text, i) => at(start + times[i] * 1000, () => setCaption(text)));
+    at(start + TOUR_DATE, () => {
+      setCaption('');
+      setShowDate(true);
+      later(() => setShowDate(false), 3600);
+    });
+    at(start + TOUR_END, () => {
+      cameraTour(null);
+      switching.current?.();
+    });
+  };
+
   useEffect(() => {
     if (!entered) return undefined;
     const events = ['pointerdown', 'wheel', 'keydown'];
@@ -412,7 +583,7 @@ export default function Route() {
   useEffect(() => {
     let alive = true;
     let sp = null;
-    createSpotify(spotifyHost.current, { onPlaying: setSpotifyOn, onTrack: setSpotifyTrack, onProgress: setSpotifyProgress, height: SPOTIFY_HEIGHT })
+    createSpotify(spotifyHost.current, { onPlaying: setSpotifyOn, onTrack: setSpotifyTrack, onProgress: setSpotifyProgress, height: SPOTIFY_HEIGHT, album: ALBUMS[albumNow.current] })
       .then((c) => {
         if (!alive) {
           c.dispose();
@@ -475,17 +646,17 @@ export default function Route() {
   // Spotify (que no dice qué canción es), el tempo medio del disco.
   // Canción de Off the Wall que suena, venga de Apple o de Spotify (−1: ninguna
   // o no se sabe). La usan la lista, los neones y el baile.
-  const song = track >= 0 ? (record === 'otw' ? track : -1) : spotifyOn ? spotifyTrack : -1;
+  const song = track >= 0 ? (record === album ? track : -1) : spotifyOn ? spotifyTrack : -1;
   const songProgress = track >= 0 ? progress : spotifyProgress;
   const nowPlaying =
-    track >= 0 ? songs[track] ?? '' : spotifyOn ? (spotifyTrack >= 0 ? TRACKS[spotifyTrack] : 'Off the Wall · Spotify') : 'Off the Wall · 1979';
+    track >= 0 ? songs[track] ?? '' : spotifyOn ? (spotifyTrack >= 0 ? ALB.tracks[spotifyTrack] : `${ALB.title} · Spotify`) : `${ALB.title} · ${ALB.year}`;
   const groove =
     track >= 0
-      ? record === 'otw'
-        ? TRACK_GROOVES[track]
+      ? record === album
+        ? ALB.grooves[track]
         : RECORDS[record].groove
       : spotifyOn
-        ? TRACK_GROOVES[spotifyTrack] ?? { bpm: 118, feel: 'disco' }
+        ? ALB.grooves[spotifyTrack] ?? { bpm: 118, feel: 'disco' }
         : null;
 
   // Con música, Michael baila de fondo al ritmo (Michael.jsx) y, de vez en
@@ -534,7 +705,42 @@ export default function Route() {
       const k = src.width / box.width;
       c.drawImage(src, (fr.left - box.left) * k, (fr.top - box.top) * k, fr.width * k, fr.height * k, 0, 0, side, side);
     }
-    develop(c, side);
+    if (albumNow.current === 'thriller') developThriller(c, side);
+    else develop(c, side);
+    if (albumNow.current === 'thriller') {
+      // Al estilo de la portada (sin copiar su rótulo): tres líneas en cursiva
+      // fina e inclinada, escalonadas hacia la derecha, con un degradado de
+      // rosa a naranja que brilla un poco y un trazo de subrayado.
+      try {
+        await document.fonts.load(`${side * 0.1}px "Mr Dafoe"`);
+      } catch {
+        // Sin la letra se usa una cursiva del sistema.
+      }
+      const grad = c.createLinearGradient(side * 0.04, side * 0.04, side * 0.46, side * 0.3);
+      grad.addColorStop(0, '#ff9fb4');
+      grad.addColorStop(0.45, '#ff8a6a');
+      grad.addColorStop(1, '#ffc27a');
+      c.save();
+      c.textAlign = 'left';
+      c.fillStyle = grad;
+      c.strokeStyle = grad;
+      c.shadowColor = 'rgb(255 150 110 / 0.55)';
+      c.shadowBlur = side * 0.01;
+      c.transform(1, 0, -0.08, 1, 0, 0);
+      c.font = `${side * 0.085}px "Mr Dafoe", cursive`;
+      c.fillText('Michael', side * 0.06, side * 0.1);
+      c.fillText('Jackson', side * 0.11, side * 0.18);
+      // Subrayado: un trazo largo que sale de la última letra de «Jackson».
+      c.lineWidth = side * 0.004;
+      c.lineCap = 'round';
+      c.beginPath();
+      c.moveTo(side * 0.12, side * 0.205);
+      c.quadraticCurveTo(side * 0.3, side * 0.19, side * 0.46, side * 0.17);
+      c.stroke();
+      c.font = `${side * 0.08}px "Mr Dafoe", cursive`;
+      c.fillText('Thriller', side * 0.2, side * 0.27);
+      c.restore();
+    }
     try {
       await document.fonts.load(`${side * 0.02}px Oswald`);
     } catch {
@@ -591,13 +797,11 @@ export default function Route() {
   // el submenú del tocadiscos). Si sonaba otro disco, se vuelve a este.
   const playMain = async (i) => {
     if (!music.current) return;
-    if (record !== 'otw') {
-      music.current.stop();
-      music.current.setQueue(null);
-      setRecord('otw');
-      setRecordTracks([]);
-      const ok = await music.current.play(i);
-      setNotice(ok ? T.nowSnippet(TRACKS[i]) : T.loadFail);
+    if (record !== album) {
+      spotify.current?.pause();
+      const loaded = await loadMain(album);
+      const ok = loaded && (await music.current.play(i));
+      setNotice(ok ? T.nowSnippet(ALB.tracks[i]) : T.loadFail);
       return;
     }
     playTrack(i);
@@ -619,7 +823,7 @@ export default function Route() {
     }
     music.current?.stop();
     sp.playTrack(i);
-    setNotice(T.nowSpotify(TRACKS[i]));
+    setNotice(T.nowSpotify(ALB.tracks[i]));
   };
 
   const playTrack = async (i) => {
@@ -654,7 +858,7 @@ export default function Route() {
     if (key === 'otw') {
       music.current.setQueue(null);
       setRecordTracks([]);
-      const ok = await music.current.play(randomIndex(TRACKS.length));
+      const ok = await music.current.play(randomIndex(ALB.tracks.length));
       setNotice(ok ? T.otwOnDeck : T.recordFail);
       return;
     }
@@ -685,8 +889,7 @@ export default function Route() {
       setNotice(spotifyOn ? T.stopped : T.spotifyOn);
       return;
     }
-    if (track >= 0) playTrack(track);
-    else playTrack(0);
+    playMain(0);
   };
 
   // Atajos de teclado: 1-4 bailes, C coreografía, F foto entera, G foto de
@@ -713,6 +916,7 @@ export default function Route() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const cardText = card ? T.cards[card] ?? T.thrillerCards[card] : null;
   const verdict = withinCeiling(budget, CEILING);
   const showBudget = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('budget');
   // La cámara empieza al fondo del estudio; al entrar vuela a la portada.
@@ -749,14 +953,17 @@ export default function Route() {
             onHover={hover}
             lang={lang}
             onDeck={onDeck}
+            album={album}
+            travel={travel}
             onInspect={(text, id) => {
               setNotice(text);
+              if (THRILLER_CARDS.includes(id)) setCard(id);
               if (id === 'muscles') setCard('muscles');
               // El cuadro de los Jackson 5: la historia de su disco de oro.
               if (id === 'j5') setCard('gold');
             }}
-            onSign={() => setCard('studio54')}
-            titles={TRACKS}
+            onSign={() => setCard(thriller ? 'westlake' : 'studio54')}
+            titles={ALB.tracks}
             song={song}
             onSong={playSong}
             shotRequest={shotRequest}
@@ -791,7 +998,7 @@ export default function Route() {
       {showDate ? (
         <div className="otw__date" role="status">
           <span>Epic Records</span>
-          <strong>{T.date}</strong>
+          <strong>{thriller ? T.thrillerDate : T.date}</strong>
         </div>
       ) : null}
       <div ref={hintEl} className={`otw__hint ${hint ? 'is-on' : ''}`} aria-hidden="true">
@@ -802,6 +1009,26 @@ export default function Route() {
       <div className="otw__vignette" aria-hidden="true" />
       <div className="otw__grain" aria-hidden="true" />
       <div className={`otw__flash ${flashing ? 'is-on' : ''}`} aria-hidden="true" />
+      {/* Fundido a negro entre los dos discos, con el rótulo de los años. */}
+      <div className={`otw__fade ${fade ? 'is-on' : ''}`} aria-hidden={!fade}>
+        {years ? (
+          <p className="otw__years" role="status">
+            {years}
+          </p>
+        ) : null}
+      </div>
+      {/* El otro disco: Thriller desde Off the Wall, y al revés. */}
+      {entered && !touring ? (
+        <button
+          type="button"
+          className={`otw__album otw__album--${otherAlbum(album)}`}
+          aria-label={T.albumSwitch(ALBUMS[otherAlbum(album)].title)}
+          onClick={switchAlbum}
+        >
+          <span>{ALBUMS[otherAlbum(album)].year}</span>
+          {thriller ? T.toOtw : T.toThriller}
+        </button>
+      ) : null}
 
       {/* Zoom en pantalla (también con la rueda, el pellizco o las teclas + y −). */}
       <div className="otw__zoom" role="group" aria-label="Zoom">
@@ -845,7 +1072,9 @@ export default function Route() {
             </button>
           </div>
           <div className="otw__deck-records" role="group" aria-label={T.deckPick}>
-            {Object.entries(RECORDS).map(([key, r]) => (
+            {Object.entries(RECORDS)
+              .filter(([, r]) => (r.deck === 'modern') === thriller)
+              .map(([key, r]) => (
               <button key={key} type="button" aria-pressed={record === key} onClick={() => putRecord(key)}>
                 {r.title} <span>{r.year}</span>
               </button>
@@ -866,16 +1095,16 @@ export default function Route() {
       {/* Ficha con foto (Muscles o Studio 54). Las fotos no se guardan en el
           repositorio: se enseñan desde su dirección original. */}
       {card ? (
-        <div className="otw__photo" role="dialog" aria-modal="true" aria-label={T.cards[card].title} onClick={() => setCard(null)}>
-          <figure onClick={(e) => e.stopPropagation()}>
+        <div className="otw__photo" role="dialog" aria-modal="true" aria-label={cardText.title} onClick={() => setCard(null)}>
+          <figure className={CARDS[card] ? '' : 'is-text'} onClick={(e) => e.stopPropagation()}>
             <button type="button" aria-label={T.musclesClose} onClick={() => setCard(null)} autoFocus>
               ×
             </button>
-            <img src={CARDS[card]} alt={T.cards[card].alt} referrerPolicy="no-referrer" />
+            {CARDS[card] ? <img src={CARDS[card]} alt={cardText.alt} referrerPolicy="no-referrer" /> : null}
             <figcaption>
-              <strong>{T.cards[card].title}</strong>
-              {T.cards[card].text}
-              {T.cards[card].credit ? <small>{T.cards[card].credit}</small> : null}
+              <strong>{cardText.title}</strong>
+              {cardText.text}
+              {cardText.credit ? <small>{cardText.credit}</small> : null}
             </figcaption>
           </figure>
         </div>
@@ -949,7 +1178,7 @@ export default function Route() {
                   suena lleva su barra). Con Spotify se ve su reproductor, con
                   su propia lista, como siempre. */}
               <ol hidden={source !== 'apple'}>
-                {TRACKS.map((t, i) => (
+                {ALB.tracks.map((t, i) => (
                   <li key={t}>
                     <button type="button" className="otw__track" aria-pressed={song === i} onClick={() => playSong(i)}>
                       <span className="otw__track-n">{song === i ? '♪' : i + 1}</span>
@@ -973,14 +1202,14 @@ export default function Route() {
                 {spotifyState === 'error' ? (
                   <p className="otw__credit">
                     {T.spotifyError}{' '}
-                    <a href={SPOTIFY_URL} target="_blank" rel="noreferrer">
+                    <a href={spotifyUrl(ALB.spotifyId)} target="_blank" rel="noreferrer">
                       {T.spotifyOpenShort}
                     </a>
                     .
                   </p>
                 ) : null}
                 <p className="otw__credit">
-                  <a href={SPOTIFY_URL} target="_blank" rel="noreferrer">
+                  <a href={spotifyUrl(ALB.spotifyId)} target="_blank" rel="noreferrer">
                     {T.spotifyOpen}
                   </a>{' '}
                   {T.spotifyMirror}
@@ -991,7 +1220,7 @@ export default function Route() {
               </div>
               <p className="otw__credit" hidden={source !== 'apple'}>
                 {T.appleNote}{' '}
-                <a href={ALBUM_URL} target="_blank" rel="noreferrer">
+                <a href={ALB.appleUrl} target="_blank" rel="noreferrer">
                   {T.appleAlbum}
                 </a>
               </p>
@@ -1002,8 +1231,8 @@ export default function Route() {
       <aside className={`otw__panel ${panelOpen ? '' : 'is-closed'}`} aria-label={T.panelLabel}>
         <header className="otw__head">
           <p className="otw__artist">Michael Jackson</p>
-          <h1 className="otw__title">Off the Wall</h1>
-          <p className="otw__meta">{T.meta}</p>
+          <h1 className="otw__title">{ALB.title}</h1>
+          <p className="otw__meta">{thriller ? T.thrillerMeta : T.meta}</p>
           {/* Idioma: español o inglés. */}
           <div className="otw__lang" role="group" aria-label={T.langLabel}>
             {LANGS.map((l) => (
@@ -1026,9 +1255,9 @@ export default function Route() {
         <div id="otw-body" className="otw__body" hidden={!panelOpen}>
           <fieldset className="otw__group">
             <legend>{T.goTo}</legend>
-            {Object.entries(VIEWS).map(([name, v]) => (
+            {Object.entries(viewsFor(album)).map(([name, v]) => (
               <button key={name} type="button" aria-pressed={zone === name} onClick={() => goTo(name)}>
-                {T.views[name] ?? v.label}
+                {(thriller ? T.thrillerViews[name] : T.views[name]) ?? v.label}
               </button>
             ))}
           </fieldset>
@@ -1074,7 +1303,7 @@ export default function Route() {
                 alt={T.shotAlt(shot.crop === 'half')}
               />
               <figcaption>
-                <a href={shot.url} download={T.shotFile(shot.crop === 'half')}>
+                <a href={shot.url} download={(thriller ? T.thrillerShotFile : T.shotFile)(shot.crop === 'half')}>
                   {T.download}
                 </a>
                 <a className="otw__shot-by" href={GITHUB} target="_blank" rel="noreferrer">
@@ -1085,7 +1314,7 @@ export default function Route() {
           ) : null}
 
           <p className="otw__caption" aria-live="polite">
-            {T.captions[zone]}
+            {(thriller ? T.thrillerCaptions : T.captions)[zone]}
           </p>
           <p className="otw__notice" aria-live="polite">
             {notice}

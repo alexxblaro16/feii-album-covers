@@ -229,7 +229,10 @@ export default function RecordPlayer({ playing, record, records, onRecord, onOpe
   // Animación al poner un disco: sale de su funda, vuela en arco y baja al plato.
   const fly = useRef(/** @type {{ from: number[], t: number } | null} */ (null));
   const first = useRef(true);
+  // Los discos del tocadiscos de 1982 (ModernDeck) no se ponen en este.
+  const mine = record in LABEL_SLOT;
   useEffect(() => {
+    if (!(record in LABEL_SLOT)) return;
     setSleeveLabelSlot(res.geo.label, LABEL_SLOT[record]);
     if (first.current) {
       first.current = false;
@@ -256,9 +259,9 @@ export default function RecordPlayer({ playing, record, records, onRecord, onOpe
         fly.current = null;
       }
     }
-    if (g && playing && !fly.current) g.rotation.y -= SPIN * Math.min(dt, 0.1);
+    if (g && playing && mine && !fly.current) g.rotation.y -= SPIN * Math.min(dt, 0.1);
     if (arm.current) {
-      const target = playing ? ARM_PLAY : ARM_REST;
+      const target = playing && mine ? ARM_PLAY : ARM_REST;
       arm.current.rotation.y += (target - arm.current.rotation.y) * Math.min(1, dt * 4);
     }
   });
