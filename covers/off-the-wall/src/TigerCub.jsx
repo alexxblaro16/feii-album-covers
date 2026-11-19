@@ -237,7 +237,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
       tail.current.getWorldQuaternion(work.q);
       parent.getWorldQuaternion(work.pq);
       work.dir.set(0, -1, 0).applyQuaternion(work.q).applyQuaternion(work.pq.invert()).normalize();
-      stepTail(res.tail, work.root, work.dir, 0.9 * s.walk + 0.75 * s.sit + 0.6 * s.lie, dt);
+      stepTail(res.tail, work.root, work.dir, 0.28 * s.walk + 0.15 * s.sit + 0.12 * s.lie, dt);
     }
   });
 
