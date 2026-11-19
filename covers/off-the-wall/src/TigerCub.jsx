@@ -106,8 +106,9 @@ function buildCub() {
     place(new SphereGeometry(0.0105, 12, 10), [0.062, 0.019, 0.028]),
     place(new SphereGeometry(0.0105, 12, 10), [0.062, 0.019, -0.028]),
   ]);
-  const tail = paint(place(new CapsuleGeometry(0.015, 0.19, 8, 14), [0, -0.105, 0]), (x, y) =>
-    y < -0.18 || Math.sin(y * 75) > 0.45 ? DARK : ORANGE,
+  // Cola larga, casi como el cuerpo, con la punta negra.
+  const tail = paint(place(new CapsuleGeometry(0.016, 0.38, 8, 16, 48), [0, -0.2, 0]), (x, y) =>
+    y < -0.35 || Math.sin(y * 75) > 0.45 ? DARK : ORANGE,
   );
   return { body, leg, head, eyes, tail };
 }
@@ -222,7 +223,9 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
     }
     if (tail.current) {
       tail.current.rotation.x = Math.sin(t * (1.6 + s.walk)) * (0.4 + 0.2 * s.walk);
-      tail.current.rotation.z = 1.2 + 0.5 * s.lie + 0.2 * s.sit;
+      // La cola sale hacia atrás (el tigre mira a +x): andando, algo levantada;
+      // tumbado, casi en el suelo; sentado, más caída.
+      tail.current.rotation.z = -1.8 + 0.25 * s.lie + 0.45 * s.sit;
     }
   });
 
@@ -257,7 +260,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
           <mesh geometry={res.geo.head} material={res.fur} castShadow />
           <mesh geometry={res.geo.eyes} material={res.eye} />
         </group>
-        <group ref={tail} position={[-0.18, 0.02, 0]} rotation={[0, 0, 1.2]}>
+        <group ref={tail} position={[-0.19, 0.02, 0]} rotation={[0, 0, -1.8]}>
           <mesh geometry={res.geo.tail} material={res.fur} />
         </group>
       </group>
