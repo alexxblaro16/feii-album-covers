@@ -14,8 +14,8 @@ import { advanceGifAfterLoop, gifLoopDurationMs } from './gifSequence.js';
 
 const ARCADE = { position: [3.7, 1.36, 9.588], rotation: [0.12, Math.PI, 0], size: [0.5, 0.4] };
 const TV = { position: [2.6, 0.75, 9.695], rotation: [0, Math.PI, 0], size: [0.46, 0.34] };
-export const BILLIE_JEAN_GIF = new URL('../public/billie-jean.gif', import.meta.url).href;
-export const THRILLER_GIF = new URL('../public/thriller.gif', import.meta.url).href;
+export const BILLIE_JEAN_GIF = 'https://i.pinimg.com/originals/ac/3a/b8/ac3ab837347e5654059bbf4319ec059c.gif';
+export const THRILLER_GIF = 'https://64.media.tumblr.com/2f3518c461440f685903845c586f362c/tumblr_p2v8rzt8tJ1ukadcbo1_400.gif';
 const TV_GIFS = [BILLIE_JEAN_GIF, THRILLER_GIF];
 const DEFAULT_GIF_LOOP_DURATION_MS = 10000;
 
