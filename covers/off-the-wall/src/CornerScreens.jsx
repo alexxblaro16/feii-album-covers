@@ -5,7 +5,7 @@
 //    y el «INSERT COIN» que se enciende y se apaga. Juego inventado.
 //  - La tele: el GIF de Thriller que se repinta en su textura para conservar
 //    la animación dentro de la pantalla 3D.
-// Las texturas se repintan unas 12 veces por segundo. Dos llamadas de dibujo.
+// Las texturas se repintan unas 24 veces por segundo. Dos llamadas de dibujo.
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -240,6 +240,8 @@ export default function CornerScreens({ reduced }) {
     loadGif().catch((error) => {
       if (!active) return;
       console.error(`No se pudieron decodificar los fotogramas del GIF: ${THRILLER_GIF}`, error);
+      decoder?.close();
+      decoder = null;
       showWithImage();
     });
     return () => {
@@ -281,7 +283,7 @@ export default function CornerScreens({ reduced }) {
   const last = useRef(-1);
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    if (t - last.current < 1 / 12) return;
+    if (t - last.current < 1 / 24) return;
     last.current = t;
     const decoder = gifDecoder.current;
     if (decoder && !decoding.current && (decodedAt.current < 0 || t - decodedAt.current >= gifFrameDuration.current)) {

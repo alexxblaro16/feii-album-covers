@@ -72,6 +72,7 @@ export function createPlayer({ onChange, onProgress }) {
   let bins = null;
   let fadeTimer = 0;
   let autoNext = true;
+  let volume = 1;
 
   const aborter = new AbortController();
   const ready = fetch(LOOKUP, { signal: aborter.signal })
@@ -123,7 +124,7 @@ export function createPlayer({ onChange, onProgress }) {
     gain.gain.value = 0;
     try {
       await audio.play();
-      if (current === i) fadeTo(1, 0.3);
+      if (current === i) fadeTo(volume, 0.3);
       return true;
     } catch {
       if (current === i) {
@@ -172,6 +173,10 @@ export function createPlayer({ onChange, onProgress }) {
     /** Cambia de disco: `urls` de los fragmentos, o null para volver a Off the Wall. */
     setQueue(urls) {
       queue = urls;
+    },
+    setVolume(value) {
+      volume = Math.max(0, Math.min(1, value));
+      if (gain && current >= 0) fadeTo(volume, 0.3);
     },
     setAutoNext(v) {
       autoNext = v;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createVoice } from '../covers/off-the-wall/src/voice.js';
+import { createVoice } from '../src/voice.js';
 
 afterEach(() => {
   vi.restoreAllMocks();

@@ -9,7 +9,7 @@ export const LOOKS = {
   otw: { wool: '#0d0c0e', sheen: '#3a3740', satin: '#070608', shirt: '#f3f1ec', shirtGlow: '#fff6e8', skin: '#7a4630', hair: '#1a120d', hairRough: 0.9, lips: '#5e2f22' },
   // Traje de lino blanco algo crema, camisa negra de cremallera, piel un poco
   // más clara que en 1979 y el pelo de rizos cortos y brillantes.
-  thriller: { wool: '#ebe6da', sheen: '#ffffff', satin: '#d3ccbc', shirt: '#151417', shirtGlow: '#000000', skin: '#956650', hair: '#22170f', hairRough: 0.55, lips: '#9a5a48' },
+  thriller: { wool: '#ebe6da', sheen: '#ffffff', satin: '#d3ccbc', shirt: '#151417', shirtGlow: '#000000', skin: '#9a6a54', hair: '#22170f', hairRough: 0.55, lips: '#8a4c3d' },
 };
 
 /** Pone la ropa del disco `key` cambiando los colores de los materiales. */

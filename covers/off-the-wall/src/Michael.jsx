@@ -215,16 +215,17 @@ function afroGeometry() {
 /**
  * Pelo de 1982 (Thriller): rizos sueltos y brillantes, no una bola. Más
  * volumen arriba, los lados pegados a la cabeza por encima de las orejas y
- * por detrás bajan hasta el cuello de la camisa; delante, la frente despejada
- * con algún rizo suelto. Rizos más grandes (unos 2 cm) que los del afro.
+ * la nuca corta; delante, la frente despejada
+ * con rizos pequeños y apretados.
  */
 function curlsGeometry() {
-  const base = new IcosahedronGeometry(0.15, 20);
+  const base = new IcosahedronGeometry(0.145, 20);
   base.deleteAttribute('normal');
   base.deleteAttribute('uv');
   const g = mergeVertices(base);
   base.dispose();
   const p = g.attributes.position;
+  const surface = new Vector3();
   for (let i = 0; i < p.count; i += 1) {
     const x = p.getX(i);
     const y = p.getY(i);
@@ -233,74 +234,32 @@ function curlsGeometry() {
     const nx = x / len;
     const ny = y / len;
     const nz = z / len;
-    // Rizos: bultos redondeados de dos tamaños (los grandes marcan cada
-    // mechón y los pequeños el rizo), deterministas para que no se abra la malla.
-    const big = Math.sin(nx * 34.1 + ny * 11.3) * Math.cos(ny * 31.7 - nz * 13.9) * Math.sin(nz * 29.3 + nx * 9.7);
-    const small = Math.sin(nx * 71.3 - nz * 23.1) * Math.cos(ny * 67.9 + nx * 17.3);
-    // Bultos redondos (no picos): se suaviza la onda y se eleva al cuadrado.
-    const tiny = Math.sin(nx * 131.3 + nz * 47.9) * Math.cos(ny * 119.7 - nz * 37.1);
-    const curl = ((big * 0.5 + 0.5) ** 2) * 0.05 + Math.max(0, small) * 0.045 + tiny * 0.012 - 0.02;
-    // Volumen: algo más arriba; los lados más pegados.
-    const top = Math.max(0, ny) * 0.03;
-    const side = Math.abs(nx) * Math.max(0, 0.7 - Math.abs(ny)) * 0.12;
-    // Hueco de la cara: delante y por debajo de la frente no hay pelo (se
-    // mete dentro de la cabeza); la línea del nacimiento del pelo es curva.
-    const front = Math.max(0, Math.min(1, (nz - 0.05) / 0.35));
-    // Frente despejada (sin pico en el centro): el nacimiento del pelo, más alto.
-    const low = Math.max(0, Math.min(1, (0.68 - ny + Math.abs(nx) * 0.22) / 0.3));
-    const face = front * low;
-    let k = (1 + top + side + curl) * (1 - 0.75 * face);
-    // Por detrás y por debajo de las orejas el pelo baja hasta la nuca.
-    let yy = ny * 0.15 * k;
-    if (nz < 0.1 && ny < 0) yy -= Math.min(1, -ny * 1.6) * 0.045 * Math.max(0, 0.1 - nz) * 6;
-    p.setXYZ(i, nx * 0.15 * k, yy, nz * 0.15 * k);
+    curlSurfacePoint(nx, ny, nz, surface);
+    p.setXYZ(i, surface.x, surface.y, surface.z);
   }
   g.computeVertexNormals();
   return g;
 }
 
-/**
- * Boca de 1982 (Thriller): la misma cara de Off the Wall, pero con los labios
- * cerrados, sin sonrisa, como en la portada.
- */
-function thrillerFaceGeometries() {
-  const sides = [-1, 1];
-  return {
-    // La misma cabeza de 1979 con la cara algo más fina: mandíbula más
-    // estrecha, barbilla pequeña y algo adelantada, pómulos un poco más altos
-    // y nariz más fina con la punta pequeña (no más larga: así no se alarga).
-    headSkin82: fuse([
-      place(new SphereGeometry(0.105, 36, 28), [0, 0, 0], [0, 0, 0], [0.81, 1.11, 0.96]),
-      place(new SphereGeometry(0.1, 32, 22), [0, -0.05, 0.006], [0, 0, 0], [0.63, 0.84, 0.86]),
-      // Barbilla un poco más marcada y adelantada.
-      place(new SphereGeometry(0.032, 20, 14), [0, -0.106, 0.04], [0.25, 0, 0], [0.92, 1.05, 0.88]),
-      ...sides.flatMap((s) => [
-        place(new SphereGeometry(0.03, 12, 10), [s * 0.094, -0.005, -0.005], [0, 0, 0], [0.45, 1, 0.75]),
-        place(new SphereGeometry(0.022, 14, 10), [s * 0.049, -0.006, 0.058], [0, 0, 0], [1, 0.65, 0.42]),
-      ]),
-      place(new SphereGeometry(0.011, 12, 10), [0, 0.006, 0.1], [0, 0, 0], [0.48, 1.55, 0.6]),
-      place(new SphereGeometry(0.0115, 14, 10), [0, -0.016, 0.1], [0, 0, 0], [1.15, 0.7, 0.72]),
-    ]),
-    // Ojos almendrados (la esquina de fuera algo más alta), con el iris oscuro
-    // grande y una línea de pestañas arriba que les da expresión.
-    eyeWhites82: fuse(
-      sides.map((s) => place(new SphereGeometry(0.018, 16, 10), [s * 0.036, 0.015, 0.085], [0, 0, s * 0.13], [1.28, 0.6, 0.58])),
-    ),
-    irises82: fuse(sides.map((s) => place(new SphereGeometry(0.0118, 14, 10), [s * 0.0355, 0.0148, 0.0948], [0, 0, 0], [1, 1, 0.65]))),
-    // Solo las cejas (en 1982 las patillas oscuras de 1979 parecían unos cascos).
-    brows82: fuse(sides.map((s) => place(new CapsuleGeometry(0.003, 0.03, 4, 8), [s * 0.038, 0.049, 0.091], [0, s * 0.25, Math.PI / 2 - s * 0.08]))),
-    // Labios cerrados con forma: el de arriba fino con su arco en el centro y
-    // el de abajo más lleno, los dos pegados a la cara.
-    closedLips: fuse([
-      // Hundidos en la piel: solo asoman lo justo, como en una cara de verdad.
-      place(new SphereGeometry(0.019, 24, 12), [0, -0.0408, 0.087], [0, 0, 0], [1.2, 0.27, 0.4]),
-      place(new SphereGeometry(0.017, 24, 12), [0, -0.0492, 0.0855], [0, 0, 0], [1.1, 0.36, 0.42]),
-    ]),
-  };
+function curlSurfacePoint(nx, ny, nz, target = new Vector3()) {
+  // La base y los rizos usan la misma superficie para que queden integrados.
+  const big = Math.sin(nx * 34.1 + ny * 11.3) * Math.cos(ny * 31.7 - nz * 13.9) * Math.sin(nz * 29.3 + nx * 9.7);
+  const small = Math.sin(nx * 71.3 - nz * 23.1) * Math.cos(ny * 67.9 + nx * 17.3);
+  const tiny = Math.sin(nx * 131.3 + nz * 47.9) * Math.cos(ny * 119.7 - nz * 37.1);
+  const curl = ((big * 0.5 + 0.5) ** 2) * 0.035 + Math.max(0, small) * 0.03 + tiny * 0.01 - 0.015;
+  const top = Math.max(0, ny) * 0.035;
+  const side = Math.abs(nx) * Math.max(0, 0.7 - Math.abs(ny)) * 0.09;
+  const front = Math.max(0, Math.min(1, (nz - 0.05) / 0.35));
+  const low = Math.max(0, Math.min(1, (0.68 - ny + Math.abs(nx) * 0.22) / 0.3));
+  const face = front * low;
+  const k = (1 + top + side + curl) * (1 - 0.75 * face);
+  let y = ny * 0.15 * k;
+  if (nz < 0.1 && ny < 0) y -= Math.min(1, -ny * 1.6) * 0.018 * Math.max(0, 0.1 - nz) * 2;
+  return target.set(nx * 0.15 * k, y, nz * 0.15 * k);
 }
 
 /**
- * Rizos sueltos del pelo de 1982: unos 200 rizos en espiral (cada uno un tubo
+ * Rizos sueltos del pelo de 1982: 240 rizos en espiral (cada uno un tubo
  * fino que da dos vueltas), repartidos por la cabeza con un poco de azar
  * fijo: arriba y a los lados con volumen, por detrás hasta la nuca, y nada
  * delante de la cara. Van encima de una base oscura (curlsGeometry) y se
@@ -325,7 +284,7 @@ function ringletsGeometry() {
     return seed / 2147483647;
   };
   const up = new Vector3(0, 1, 0);
-  const count = 230;
+  const count = 240;
   for (let i = 0; i < count; i += 1) {
     // Puntos repartidos por la esfera (espiral de Fibonacci).
     const y = 1 - (i / (count - 1)) * 2;
@@ -339,10 +298,9 @@ function ringletsGeometry() {
     if (ny < -0.15 && nz > -0.1) continue;
     if (ny < -0.8) continue;
     const n = new Vector3(nx, ny, nz).normalize();
-    const out = 1.04 + rnd() * 0.1 + Math.max(0, ny) * 0.12;
-    const pos = new Vector3(nx * 0.096 * out, 0.03 + ny * 0.1 * out, 0.004 + nz * 0.104 * out);
-    const len = 0.03 + rnd() * 0.02 + (ny < 0 ? 0.015 : 0);
-    const curl = new TubeGeometry(helix(1.6 + rnd(), 0.0075 + rnd() * 0.003, len), 18, 0.0034, 5, false);
+    const pos = curlSurfacePoint(nx, ny, nz).addScaledVector(n, -0.004);
+    const len = 0.014 + rnd() * 0.006 + (ny < 0 ? 0.003 : 0);
+    const curl = new TubeGeometry(helix(1.5 + rnd() * 0.5, 0.0035 + rnd() * 0.001, len), 18, 0.0016, 5, false);
     // El rizo sale de la cabeza hacia fuera y cuelga un poco hacia abajo.
     const dir = n.clone().multiplyScalar(-1).add(new Vector3(0, 0.6, 0)).normalize();
     const q = new Quaternion().setFromUnitVectors(up, dir);
@@ -409,12 +367,33 @@ function headGeometries() {
         place(new SphereGeometry(0.03, 12, 10), [s * 0.088, -0.005, 0.03], [0, 0, 0], [0.5, 1.4, 0.9]),
       ]),
     ),
+    brows82: fuse(
+      sides.map(
+        (s) =>
+          new TubeGeometry(
+            new CatmullRomCurve3([
+              new Vector3(s * 0.016, 0.037, 0.0945),
+              new Vector3(s * 0.027, 0.039, 0.0895),
+              new Vector3(s * 0.039, 0.038, 0.0835),
+              new Vector3(s * 0.049, 0.034, 0.0785),
+            ]),
+            16,
+            0.0016,
+            6,
+            false,
+          ),
+      ),
+    ),
     // La sonrisa amplia: boca abierta en media luna con los dientes de arriba.
     lips: fuse([
       place(new CircleGeometry(0.035, 28, Math.PI, Math.PI), [0, -0.047, 0.094], [-0.3, 0, 0], [1, 0.52, 1]),
       place(new CapsuleGeometry(0.005, 0.056, 4, 8), [0, -0.044, 0.094], [0, 0, Math.PI / 2], [0.55, 1.2, 0.6]),
     ]),
     teeth: place(new CircleGeometry(0.033, 28, Math.PI, Math.PI), [0, -0.0475, 0.0955], [-0.3, 0, 0], [0.92, 0.36, 1]),
+    closedLips: fuse([
+      place(new SphereGeometry(0.019, 24, 12), [0, -0.047, 0.094], [0, 0, 0], [1.15, 0.2, 0.34]),
+      place(new SphereGeometry(0.018, 24, 12), [0, -0.054, 0.0935], [0, 0, 0], [1.05, 0.28, 0.36]),
+    ]),
   };
 }
 
@@ -593,7 +572,6 @@ function useGeometries() {
       afro: afroGeometry(),
       curls: curlsGeometry(),
       ringlets: ringletsGeometry(),
-      ...thrillerFaceGeometries(),
       ...headGeometries(),
     };
   }, []);
@@ -670,22 +648,24 @@ function Arm({ side, mats, armRef, elbowRef, wristRef, thumbRef }) {
 function Head({ mats, geos, hairPos, hairScale, thriller }) {
   return (
     <group>
-      {/* La misma cara en los dos discos; en 1982, con la boca cerrada. */}
-      <mesh geometry={thriller ? geos.headSkin82 : geos.headSkin} material={mats.skin} castShadow />
-      <mesh geometry={thriller ? geos.eyeWhites82 : geos.eyeWhites} material={mats.eyeWhite} />
-      <mesh geometry={thriller ? geos.irises82 : geos.irises} material={mats.iris} />
-      <mesh geometry={thriller ? geos.brows82 : geos.hairBits} material={mats.hair} />
+      {/* La cara de 1979 se reutiliza en Thriller; solo cambia la boca. */}
+      <mesh geometry={geos.headSkin} material={mats.skin} castShadow />
+      <mesh geometry={geos.eyeWhites} material={mats.eyeWhite} />
+      <mesh geometry={geos.irises} material={mats.iris} />
       {thriller ? (
         <>
-          {/* 1982: boca cerrada, sin sonrisa (labios hundidos en la piel). */}
+          <mesh geometry={geos.brows82} material={mats.hair} />
+          {/* Boca cerrada, sin los dientes ni la sonrisa de Off the Wall. */}
           <mesh geometry={geos.closedLips} material={mats.lips} />
-          {/* Los rizos de 1982, brillantes, hasta el cuello de la camisa. */}
+          {/* Los rizos cortos de 1982 terminan en la nuca. */}
           {/* Base oscura y, encima, los rizos uno a uno. */}
-          <mesh geometry={geos.curls} position={[0, 0.03, 0.012]} scale={[0.95, 0.94, 1.0]} material={mats.hair} />
-          <mesh geometry={geos.ringlets} material={mats.hair} castShadow />
+          {/* Más volumen arriba y a los lados, como en la portada. */}
+          <mesh geometry={geos.curls} position={[0, 0.034, 0.008]} scale={[1.02, 0.9, 1.02]} material={mats.hair} />
+          <mesh geometry={geos.ringlets} position={[0, 0.034, 0.008]} scale={[1.02, 0.9, 1.02]} material={mats.hair} castShadow />
         </>
       ) : (
         <>
+          <mesh geometry={geos.hairBits} material={mats.hair} />
           <mesh geometry={geos.lips} material={mats.lips} />
           <mesh geometry={geos.teeth} material={mats.teeth} />
           {/* Afro redondo que rodea la cabeza y enmarca la cara (el hueco va en la geometría). */}
@@ -778,6 +758,7 @@ const LOOK = {
   tilt: -0.04,
   chin: -0.2,
   pos: new Vector3(),
+  centerOffset: new Vector3(),
   euler: new Euler(),
   want: new Quaternion(),
   parent: new Quaternion(),
@@ -1025,8 +1006,8 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
       // la portada, como en la foto: se calcula su giro en el mundo y se pasa
       // al del cuello.
       const hq = head.current;
-      hq.parent.updateWorldMatrix(true, false);
-      hq.getWorldPosition(LOOK.pos);
+      hq.updateWorldMatrix(true, false);
+      LOOK.pos.copy(hq.localToWorld(LOOK.centerOffset.set(0, thriller ? 0.143 : 0, 0)));
       const dx = LOOK.cam.x - LOOK.pos.x;
       const dz = LOOK.cam.z - LOOK.pos.z;
       const dy = LOOK.cam.y - LOOK.pos.y;
@@ -1116,15 +1097,17 @@ export default function Michael({ move, flashAt, groove, playing, reduced, level
           <mesh position={[0, 0.612, 0.005]} material={mats.shirt}>
             <cylinderGeometry args={[0.054, 0.06, 0.075, 24, 1, true]} />
           </mesh>
-          <mesh position={[0, 0.645, 0]} material={mats.skin} castShadow={!LITE}>
-            <cylinderGeometry args={[0.046, 0.052, 0.11, 20]} />
+          <mesh position={[0, thriller ? 0.63 : 0.645, 0]} material={mats.skin} castShadow={!LITE}>
+            {thriller ? <capsuleGeometry args={[0.03, 0.01, 8, 20]} /> : <cylinderGeometry args={[0.046, 0.052, 0.11, 20]} />}
           </mesh>
           <Arm side={1} mats={mats} armRef={armL} elbowRef={elbowL} wristRef={wristL} thumbRef={thumbL} />
           <Arm side={-1} mats={mats} armRef={armR} elbowRef={elbowR} wristRef={wristR} thumbRef={thumbR} />
           {/* En 1982 la cabeza va algo más alta, para que se vea el cuello por
               encima de la camisa (si no, se hundía en el cuello abierto). */}
-          <group ref={head} position={thriller ? [0, 0.78, 0.018] : [0, 0.74, 0.008]} scale={0.9}>
-            <Head mats={mats} geos={geos} hairPos={hairPos} hairScale={hairScale} thriller={thriller} />
+          <group ref={head} position={thriller ? [0, 0.638, -0.01] : [0, 0.74, 0.008]} scale={thriller ? 0.97 : 0.9}>
+            <group position={thriller ? [0, 0.143, 0] : [0, 0, 0]}>
+              <Head mats={mats} geos={geos} hairPos={hairPos} hairScale={hairScale} thriller={thriller} />
+            </group>
           </group>
         </group>
       </group>

@@ -82,6 +82,7 @@ const TOUR_CAPTIONS = [0.8, 4.2, 6.8, 9.0, 11.2, 13.6];
 /** Cuándo sale la fecha (con Michael ya cerca) y cuándo acaba todo, en ms. */
 const TOUR_DATE = 17800;
 const TOUR_END = 21600;
+const THRILLER_PREVIEW_GAIN = 0.75;
 import './route.css';
 
 const SCOPE = 'route-off-the-wall';
@@ -202,8 +203,8 @@ export default function Route() {
   const [years, setYears] = useState('');
   const [zone, setZone] = useState('cover');
   const [move, setMove] = useState(/** @type {{ name: keyof typeof MOVES, at: number } | null} */ (null));
-  // De dónde sale la música: Spotify (por defecto) o los fragmentos de Apple.
-  const [source, setSource] = useState(/** @type {'spotify' | 'apple'} */ ('spotify'));
+  // Apple es el origen por defecto para poder ajustar el nivel por disco.
+  const [source, setSource] = useState(/** @type {'spotify' | 'apple'} */ ('apple'));
   const [spotifyOn, setSpotifyOn] = useState(false);
   // Canción del disco que suena en Spotify (−1 si no se sabe) y por dónde va (0..1).
   const [spotifyTrack, setSpotifyTrack] = useState(-1);
@@ -322,12 +323,14 @@ export default function Route() {
     player.stop();
     setRecord(key);
     if (key === 'otw') {
+      player.setVolume(1);
       player.setQueue(null);
       setRecordTracks([]);
       return true;
     }
     const list = await loadRecord(key);
     if (!list.length) return false;
+    player.setVolume(key === 'thriller' ? THRILLER_PREVIEW_GAIN : 1);
     player.setQueue(list.map((t) => t.url));
     setRecordTracks(list.map((t) => t.title));
     return true;
@@ -856,6 +859,7 @@ export default function Route() {
     music.current.stop();
     setRecord(key);
     if (key === 'otw') {
+      music.current.setVolume(1);
       music.current.setQueue(null);
       setRecordTracks([]);
       const ok = await music.current.play(randomIndex(ALB.tracks.length));
@@ -869,6 +873,7 @@ export default function Route() {
       return;
     }
     music.current.setQueue(list.map((t) => t.url));
+    music.current.setVolume(key === 'thriller' ? THRILLER_PREVIEW_GAIN : 1);
     setRecordTracks(list.map((t) => t.title));
     // Cada vez que se pone un disco empieza por una canción al azar.
     const first = randomIndex(list.length);

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import Intro from '../covers/off-the-wall/src/Intro.jsx';
-import { COVER_URLS, createSleeves, labelGeometry, setSleeveLabelSlot, sleeveGeometry, sleeveLabelGeometry } from '../covers/off-the-wall/src/sleeves.js';
+import Intro from '../src/Intro.jsx';
+import { COVER_URLS, createSleeves, labelGeometry, setSleeveLabelSlot, sleeveGeometry, sleeveLabelGeometry } from '../src/sleeves.js';
 
 afterEach(() => vi.restoreAllMocks());
 

@@ -803,7 +803,7 @@
   position: absolute;
   top: 16px;
   left: 16px;
-  z-index: 6;
+  z-index: 41;
   width: min(22rem, calc(100vw - 32px));
   /* Termina antes de los botones de zoom, que van a media altura. */
   max-height: calc(50dvh - 70px);
@@ -1402,7 +1402,7 @@ html.route-off-the-wall body {
   }
 
   .otw__music:not(.is-folded) {
-    z-index: 9;
+    z-index: 41;
     background: rgb(20 13 10 / 0.94);
   }
 
@@ -1559,7 +1559,7 @@ html.route-off-the-wall body {
 
   /* Abierto se ensancha: dentro va el reproductor de Spotify. */
   .otw__music:not(.is-folded) {
-    z-index: 9;
+    z-index: 41;
     width: min(22rem, 56vw);
     background: rgb(20 13 10 / 0.94);
   }
