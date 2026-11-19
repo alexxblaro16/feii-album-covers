@@ -3,21 +3,22 @@
 //    de neón rosa con notas musicales por el que corre un personaje
 //    inventado (un muñequito con sombrero), el título del juego
 //    y el «INSERT COIN» que se enciende y se apaga. Juego inventado.
-//  - La tele: alterna dos veces los GIF de Billie Jean y Thriller y los repinta
-//    en su textura para conservar la animación dentro de la pantalla 3D.
+//  - La tele: alterna los GIF remotos de Billie Jean y Thriller sobre la
+//    pantalla 3D sin dibujarlos en el lienzo (Pinterest no permite CORS).
 // Las texturas se repintan unas 24 veces por segundo. Dos llamadas de dibujo.
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import { CanvasTexture, MeshBasicMaterial, PlaneGeometry, SRGBColorSpace } from 'three';
-import { advanceGifAfterLoop, gifLoopDurationMs } from './gifSequence.js';
+import { advanceGifAfterLoop } from './gifSequence.js';
 
 const ARCADE = { position: [3.7, 1.36, 9.588], rotation: [0.12, Math.PI, 0], size: [0.5, 0.4] };
 const TV = { position: [2.6, 0.75, 9.695], rotation: [0, Math.PI, 0], size: [0.46, 0.34] };
 export const BILLIE_JEAN_GIF = 'https://i.pinimg.com/originals/ac/3a/b8/ac3ab837347e5654059bbf4319ec059c.gif';
 export const THRILLER_GIF = 'https://64.media.tumblr.com/2f3518c461440f685903845c586f362c/tumblr_p2v8rzt8tJ1ukadcbo1_400.gif';
 const TV_GIFS = [BILLIE_JEAN_GIF, THRILLER_GIF];
-const DEFAULT_GIF_LOOP_DURATION_MS = 10000;
+const TV_GIF_LOOP_DURATIONS_MS = [3960, 2080];
 
 /** Laberinto (1 = pared) de 15 x 11 casillas. */
 const MAZE = [
@@ -201,107 +202,18 @@ function drawTv(c, w, h, t, image) {
 
 /** @param {{ reduced: boolean }} props */
 export default function CornerScreens({ reduced }) {
-  const tvImage = useRef(null);
-  const tvFrame = useRef(null);
-  const gifDecoders = useRef([]);
-  const gifIndex = useRef(0);
-  const loopsCompleted = useRef(0);
-  const gifFrameIndex = useRef(0);
-  const gifFrameDuration = useRef(0);
-  const decodedAt = useRef(-1);
-  const decoding = useRef(false);
-  const fallbackTimer = useRef(null);
+  const [gifIndex, setGifIndex] = useState(0);
+  const [loadedGifIndex, setLoadedGifIndex] = useState(-1);
   useEffect(() => {
-    let active = true;
-    const decoders = [];
-    const blobUrls = [];
-    const showWithImages = (assets = []) => {
-      const sources = TV_GIFS.map((url, index) => {
-        const asset = assets[index];
-        if (!asset?.data) return url;
-        const blobUrl = URL.createObjectURL(new Blob([asset.data], { type: 'image/gif' }));
-        blobUrls.push(blobUrl);
-        return blobUrl;
-      });
-      const display = (index) => {
-        const image = new Image();
-        image.crossOrigin = 'anonymous';
-        image.addEventListener('error', () => {
-          console.error(`No se pudo cargar el GIF de la tele: ${TV_GIFS[index]}`);
-        });
-        image.src = sources[index];
-        tvImage.current = image;
-      };
-      gifIndex.current = 0;
-      loopsCompleted.current = 0;
-      display(0);
-      const scheduleNextLoop = () => {
-        const loopDuration = assets[gifIndex.current]?.loopDurationMs ?? DEFAULT_GIF_LOOP_DURATION_MS;
-        fallbackTimer.current = window.setTimeout(() => {
-          if (!active) return;
-          const next = advanceGifAfterLoop(gifIndex.current, loopsCompleted.current, sources.length);
-          gifIndex.current = next.gifIndex;
-          loopsCompleted.current = next.loopsCompleted;
-          if (next.loopsCompleted === 0) display(next.gifIndex);
-          scheduleNextLoop();
-        }, loopDuration);
-      };
-      scheduleNextLoop();
-    };
-    const loadGifs = async () => {
-      const assets = await Promise.all(
-        TV_GIFS.map(async (url) => {
-          const response = await fetch(url);
-          if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-          const type = response.headers.get('content-type')?.split(';')[0];
-          if (type !== 'image/gif') throw new Error(`Expected image/gif, received ${type || 'unknown type'}`);
-          const data = await response.arrayBuffer();
-          return { url, data, loopDurationMs: gifLoopDurationMs(data) };
-        }),
-      );
-      if (!active) return;
-      if (typeof ImageDecoder === 'undefined' || !(await ImageDecoder.isTypeSupported('image/gif'))) {
-        showWithImages(assets);
-        return;
-      }
-      try {
-        for (const asset of assets) {
-          const decoder = new ImageDecoder({ data: asset.data, type: 'image/gif' });
-          decoders.push({ decoder, frameCount: 0 });
-          await decoder.tracks.ready;
-          const frameCount = decoder.tracks.selectedTrack?.frameCount ?? 0;
-          if (frameCount < 1) throw new Error(`The GIF contains no frames: ${asset.url}`);
-          decoders[decoders.length - 1].frameCount = frameCount;
-        }
-        if (!active) {
-          decoders.forEach(({ decoder }) => decoder.close());
-          return;
-        }
-        gifDecoders.current = decoders;
-      } catch (error) {
-        if (!active) return;
-        decoders.forEach(({ decoder }) => decoder.close());
-        console.error('No se pudieron decodificar los GIF de la tele; se usará la reproducción del navegador.', error);
-        showWithImages(assets);
-      }
-    };
-    loadGifs().catch((error) => {
-      if (!active) return;
-      console.error('No se pudieron cargar los GIF de la tele; se usará la reproducción del navegador.', error);
-      showWithImages();
-    });
-    return () => {
-      active = false;
-      if (fallbackTimer.current !== null) window.clearTimeout(fallbackTimer.current);
-      decoders.forEach(({ decoder }) => decoder.close());
-      gifDecoders.current = [];
-      blobUrls.forEach((url) => URL.revokeObjectURL(url));
-      tvFrame.current?.close();
-      tvFrame.current = null;
-      tvImage.current = null;
-      decoding.current = false;
-    };
-  }, []);
+    if (reduced || loadedGifIndex !== gifIndex) return undefined;
+    let loopsCompleted = 0;
+    const timer = window.setInterval(() => {
+      const next = advanceGifAfterLoop(gifIndex, loopsCompleted, TV_GIFS.length);
+      loopsCompleted = next.loopsCompleted;
+      if (next.gifIndex !== gifIndex) setGifIndex(next.gifIndex);
+    }, TV_GIF_LOOP_DURATIONS_MS[gifIndex]);
+    return () => window.clearInterval(timer);
+  }, [gifIndex, loadedGifIndex, reduced]);
   const res = useMemo(() => {
     const make = (w, h) => {
       const canvas = document.createElement('canvas');
@@ -333,50 +245,35 @@ export default function CornerScreens({ reduced }) {
     const t = clock.elapsedTime;
     if (t - last.current < 1 / 24) return;
     last.current = t;
-    const gif = gifDecoders.current[gifIndex.current];
-    if (
-      gif &&
-      !decoding.current &&
-      (decodedAt.current < 0 || (!reduced && t - decodedAt.current >= gifFrameDuration.current))
-    ) {
-      const index = gifFrameIndex.current;
-      const { decoder } = gif;
-      decoding.current = true;
-      decoder.decode({ frameIndex: index }).then(
-        ({ image }) => {
-          if (gifDecoders.current[gifIndex.current] !== gif) {
-            image.close();
-            return;
-          }
-          tvFrame.current?.close();
-          tvFrame.current = image;
-          if (index + 1 >= gif.frameCount) {
-            gifFrameIndex.current = 0;
-            const next = advanceGifAfterLoop(gifIndex.current, loopsCompleted.current, gifDecoders.current.length);
-            if (next.gifIndex !== gifIndex.current) decodedAt.current = -1;
-            gifIndex.current = next.gifIndex;
-            loopsCompleted.current = next.loopsCompleted;
-          } else {
-            gifFrameIndex.current = index + 1;
-          }
-          gifFrameDuration.current = Math.max((image.duration || 60000) / 1_000_000, 1 / 60);
-          decodedAt.current = t;
-        },
-        (error) => {
-          if (gifDecoders.current[gifIndex.current] === gif) {
-            console.error(`No se pudo decodificar un fotograma del GIF: ${TV_GIFS[gifIndex.current]}`, error);
-          }
-        },
-      ).finally(() => {
-        decoding.current = false;
-      });
-    }
-    paintScreens(res, reduced ? 1 : t, reduced ? tvFrame.current : tvFrame.current || tvImage.current);
+    paintScreens(res, reduced ? 1 : t);
   });
   return (
     <group>
       <mesh geometry={res.geo.arcade} material={res.arcade.mat} position={ARCADE.position} rotation={ARCADE.rotation} />
       <mesh geometry={res.geo.tv} material={res.tv.mat} position={TV.position} rotation={TV.rotation} />
+      <Html
+        transform
+        position={[TV.position[0], TV.position[1], TV.position[2] - 0.002]}
+        rotation={TV.rotation}
+        distanceFactor={4}
+        pointerEvents="none"
+        style={{ display: reduced ? 'none' : 'block' }}
+      >
+        <div style={{ width: `${TV.size[0] * 100}px`, height: `${TV.size[1] * 100}px`, overflow: 'hidden' }}>
+          <img
+            key={TV_GIFS[gifIndex]}
+            src={TV_GIFS[gifIndex]}
+            alt={gifIndex === 0 ? 'Videoclip de Billie Jean' : 'Videoclip de Thriller'}
+            draggable={false}
+            onLoad={() => setLoadedGifIndex(gifIndex)}
+            onError={(event) => {
+              console.error(`No se pudo cargar el GIF de la tele: ${event.currentTarget.src}`);
+              setLoadedGifIndex(gifIndex);
+            }}
+            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'fill' }}
+          />
+        </div>
+      </Html>
     </group>
   );
 }
