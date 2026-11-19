@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { createTail, stepTail } from './tigerTail.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   CapsuleGeometry,
@@ -106,11 +107,7 @@ function buildCub() {
     place(new SphereGeometry(0.0105, 12, 10), [0.062, 0.019, 0.028]),
     place(new SphereGeometry(0.0105, 12, 10), [0.062, 0.019, -0.028]),
   ]);
-  // Cola larga, casi como el cuerpo, con la punta negra.
-  const tail = paint(place(new CapsuleGeometry(0.016, 0.38, 8, 16, 48), [0, -0.2, 0]), (x, y) =>
-    y < -0.35 || Math.sin(y * 75) > 0.45 ? DARK : ORANGE,
-  );
-  return { body, leg, head, eyes, tail };
+  return { body, leg, head, eyes };
 }
 
 /** Patas: [x, z] del hombro o la cadera, y con qué pareja van al andar (en diagonal). */
@@ -139,6 +136,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
   const res = useMemo(
     () => ({
       geo: buildCub(),
+      tail: createTail(),
       fur: new MeshStandardMaterial({ vertexColors: true, roughness: 0.92 }),
       eye: new MeshStandardMaterial({ color: '#160d07', roughness: 0.15 }),
     }),
@@ -147,6 +145,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
   useEffect(
     () => () => {
       Object.values(res.geo).forEach((g) => g.dispose());
+      res.tail.geometry.dispose();
       res.fur.dispose();
       res.eye.dispose();
     },
@@ -156,6 +155,8 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
   const body = useRef(null);
   const head = useRef(null);
   const tail = useRef(null);
+  // Vectores de trabajo para la cola (raíz y dirección de reposo).
+  const work = useMemo(() => ({ root: new Vector3(), dir: new Vector3(), q: new Quaternion(), pq: new Quaternion() }), []);
   const legs = useRef([]);
   // Por dónde va en la elipse (ángulo) y cuánto está andando, sentado o tumbado.
   const state = useRef({ angle: 0.3, walk: 0, sit: 0, lie: 1, step: 0 });
@@ -176,13 +177,14 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
         k -= p.time;
       }
     }
-    const ease = Math.min(1, dt * 3);
+    // Cambios de postura lentos, como un gato.
+    const ease = Math.min(1, dt * 1.1);
     s.walk += ((what === 'walk' ? 1 : 0) - s.walk) * ease;
     s.sit += ((what === 'sit' ? 1 : 0) - s.sit) * ease;
     s.lie += ((what === 'lie' ? 1 : 0) - s.lie) * ease;
     // Anda por la elipse, despacio, a pasitos.
-    s.angle += dt * 0.32 * s.walk;
-    s.step += dt * 7.5 * s.walk;
+    s.angle += dt * 0.17 * s.walk;
+    s.step += dt * 3.6 * s.walk;
     const [cx, cz] = center;
     const [rx, rz] = radius;
     const x = cx + Math.cos(s.angle) * rx;
@@ -196,18 +198,20 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
     }
     // Altura y giro del cuerpo: de pie, sentado (cadera abajo y pecho arriba)
     // o tumbado (casi en el suelo).
-    const breathe = 1 + Math.sin(t * 2.2) * 0.025;
-    const bob = Math.abs(Math.sin(s.step)) * 0.006 * s.walk;
+    const breathe = 1 + Math.sin(t * 1.5) * 0.02;
+    const bob = Math.abs(Math.sin(s.step)) * 0.004 * s.walk;
     if (body.current) {
       body.current.position.y = 0.13 * s.walk + 0.11 * s.sit + 0.065 * s.lie + bob;
       body.current.position.x = -0.03 * s.sit;
       body.current.rotation.z = 0.62 * s.sit;
+      // Al andar, los hombros se mecen de lado a lado (paso de felino).
+      body.current.rotation.x = Math.sin(s.step) * 0.05 * s.walk;
       body.current.scale.set(1, breathe, breathe);
     }
     legs.current.forEach((g, i) => {
       if (!g) return;
       const front = i < 2;
-      const swing = Math.sin(s.step + (LEGS[i].pair ? Math.PI : 0)) * 0.55 * s.walk;
+      const swing = Math.sin(s.step + (LEGS[i].pair ? Math.PI : 0)) * 0.42 * s.walk;
       // Sentado: las de delante rectas (compensan el pecho levantado) y las de
       // atrás dobladas. Tumbado: las de delante estiradas y las de atrás recogidas.
       const sitRot = front ? -0.62 : 1.0;
@@ -216,20 +220,29 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
     });
     if (head.current) {
       // Mira alrededor: sentado gira la cabeza a un lado y a otro; tumbado, a ratos.
-      const look = Math.sin(t * 0.8);
+      const look = Math.sin(t * 0.4);
       head.current.rotation.y = look * (0.15 * s.walk + 0.6 * s.sit + 0.3 * s.lie);
-      head.current.rotation.z = -0.62 * s.sit + 0.08 * s.lie + Math.sin(s.step * 0.5) * 0.04 * s.walk;
+      head.current.rotation.z = -0.62 * s.sit + 0.08 * s.lie + Math.sin(s.step * 0.5) * 0.03 * s.walk;
       head.current.position.y = 0.06 * s.walk + 0.05 * s.sit + 0.05 * s.lie;
     }
-    if (tail.current) {
-      tail.current.rotation.x = Math.sin(t * (1.6 + s.walk)) * (0.4 + 0.2 * s.walk);
-      // La cola sale hacia atrás (el tigre mira a +x): andando, algo levantada;
-      // tumbado, casi en el suelo; sentado, más caída.
-      tail.current.rotation.z = -1.8 + 0.25 * s.lie + 0.45 * s.sit;
+    if (tail.current && root.current?.parent) {
+      // La raíz de la cola marca el reposo (hacia atrás y algo arriba, con un
+      // vaivén lento); la física hace el resto: cae, se balancea y apoya en el suelo.
+      tail.current.rotation.x = Math.sin(t * (0.7 + 0.4 * s.walk)) * (0.3 + 0.15 * s.walk);
+      tail.current.rotation.z = -1.95 + 0.2 * s.lie + 0.3 * s.sit;
+      tail.current.updateWorldMatrix(true, false);
+      const parent = root.current.parent;
+      tail.current.getWorldPosition(work.root);
+      parent.worldToLocal(work.root);
+      tail.current.getWorldQuaternion(work.q);
+      parent.getWorldQuaternion(work.pq);
+      work.dir.set(0, -1, 0).applyQuaternion(work.q).applyQuaternion(work.pq.invert()).normalize();
+      stepTail(res.tail, work.root, work.dir, 0.5 * s.walk + 0.3 * s.sit + 0.18 * s.lie, dt);
     }
   });
 
   return (
+    <>
     <group
       ref={root}
       onClick={(e) => {
@@ -260,10 +273,11 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
           <mesh geometry={res.geo.head} material={res.fur} castShadow />
           <mesh geometry={res.geo.eyes} material={res.eye} />
         </group>
-        <group ref={tail} position={[-0.19, 0.02, 0]} rotation={[0, 0, -1.8]}>
-          <mesh geometry={res.geo.tail} material={res.fur} />
-        </group>
+        {/* Raíz de la cola: solo marca dónde nace; el tubo va fuera, en el espacio del suelo. */}
+        <group ref={tail} position={[-0.17, 0.02, 0]} rotation={[0, 0, -1.95]} />
       </group>
     </group>
+    <mesh geometry={res.tail.geometry} material={res.fur} castShadow frustumCulled={false} />
+    </>
   );
 }
