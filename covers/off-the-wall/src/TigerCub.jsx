@@ -228,7 +228,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
     if (tail.current && root.current?.parent) {
       // La raíz de la cola marca el reposo (hacia atrás y algo arriba, con un
       // vaivén lento); la física hace el resto: cae, se balancea y apoya en el suelo.
-      tail.current.rotation.x = Math.sin(t * (0.7 + 0.4 * s.walk)) * (0.3 + 0.15 * s.walk);
+      tail.current.rotation.x = Math.sin(t * (0.6 + 0.3 * s.walk)) * (0.08 + 0.06 * s.walk);
       tail.current.rotation.z = -1.95 + 0.2 * s.lie + 0.3 * s.sit;
       tail.current.updateWorldMatrix(true, false);
       const parent = root.current.parent;
@@ -237,7 +237,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
       tail.current.getWorldQuaternion(work.q);
       parent.getWorldQuaternion(work.pq);
       work.dir.set(0, -1, 0).applyQuaternion(work.q).applyQuaternion(work.pq.invert()).normalize();
-      stepTail(res.tail, work.root, work.dir, 0.5 * s.walk + 0.3 * s.sit + 0.18 * s.lie, dt);
+      stepTail(res.tail, work.root, work.dir, 0.9 * s.walk + 0.75 * s.sit + 0.6 * s.lie, dt);
     }
   });
 

@@ -7,14 +7,14 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Vector3 } from "three";
 
 const POINTS = 12; // puntos de la cadena
-const LENGTH = 0.4; // metros
+const LENGTH = 0.3; // metros (cola fina de cachorro)
 const SEG = LENGTH / (POINTS - 1);
 const SAMPLES = 30; // anillos del tubo (se interpolan entre los puntos)
 const RADIAL = 10;
-const R_ROOT = 0.017;
-const R_TIP = 0.011;
+const R_ROOT = 0.0105;
+const R_TIP = 0.006;
 const GRAVITY = 9.8;
-const DAMPING = 0.94;
+const DAMPING = 0.82;
 const ITERATIONS = 6;
 
 const ORANGE = new Color("#c8732c");
@@ -107,7 +107,7 @@ export function stepTail(tail, root, dir, stiff, dt) {
       // Rigidez: cada tramo tiende a seguir la dirección de reposo (más cerca de la raíz, más fuerte).
       const u = i / (POINTS - 1);
       target.copy(p[i - 1]).addScaledVector(dir, SEG);
-      p[i].lerp(target, (stiff * (1 - 0.7 * u)) / ITERATIONS);
+      p[i].lerp(target, (stiff * (1 - 0.4 * u)) / ITERATIONS);
       // Largo de cada tramo fijo.
       v.subVectors(p[i], p[i - 1]);
       const len = v.length() || 1e-6;
