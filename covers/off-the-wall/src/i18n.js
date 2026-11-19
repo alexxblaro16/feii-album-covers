@@ -211,9 +211,11 @@ export const STR = {
       },
       tvconsole: {
         title: 'La tele y la videoconsola',
-        text: 'Está aquí porque a principios de los ochenta las videoconsolas de cartuchos ya estaban en millones de casas, enchufadas a teles de tubo con antena de cuernos. MTV empezó a emitir el 1 de agosto de 1981 y, el 2 de diciembre de 1983, estrenó el videoclip de «Thriller», la canción que da título al álbum considerado el más vendido de la historia.',
-        alt: 'Un fotograma del videoclip «Thriller» de Michael Jackson',
-        credit: 'GIF del videoclip «Thriller» · fuente original: Tumblr',
+        text: 'Está aquí porque a principios de los ochenta las videoconsolas de cartuchos ya estaban en millones de casas, enchufadas a teles de tubo con antena de cuernos. MTV empezó a emitir el 1 de agosto de 1981. «Billie Jean» fue número 1 del Billboard Hot 100 durante siete semanas; su videoclip se estrenó en MTV el 10 de marzo de 1983. «Thriller» es un corto de 14 minutos dirigido por John Landis: MTV lo estrenó el 2 de diciembre de 1983 y en 2009 fue el primer videoclip seleccionado para el National Film Registry de EE. UU.',
+        alt: 'Fotograma del videoclip «Billie Jean» de Michael Jackson',
+        altSecondary: 'Fotograma del videoclip «Thriller» de Michael Jackson',
+        imageLabels: ['Videoclip «Billie Jean»', 'Videoclip «Thriller»'],
+        credit: 'GIF «Billie Jean»: Pinterest · GIF «Thriller»: Tumblr',
       },
       boombox: {
         title: 'El radiocasete',
@@ -445,9 +447,11 @@ export const STR = {
       },
       tvconsole: {
         title: 'The TV and the console',
-        text: 'It is here because by the early eighties cartridge consoles were already in millions of homes, plugged into tube TVs with rabbit-ear antennas. MTV began broadcasting on August 1, 1981, and premiered the “Thriller” music video on December 2, 1983—the song that gives its title to the album widely regarded as the best-selling of all time.',
-        alt: 'A frame from Michael Jackson’s “Thriller” music video',
-        credit: '“Thriller” music video GIF · original source: Tumblr',
+        text: 'It is here because by the early eighties cartridge consoles were already in millions of homes, plugged into tube TVs with rabbit-ear antennas. MTV began broadcasting on August 1, 1981. “Billie Jean” topped the Billboard Hot 100 for seven weeks; its video premiered on MTV on March 10, 1983. “Thriller” is a 14-minute short film directed by John Landis: MTV premiered it on December 2, 1983, and in 2009 it became the first music video selected for the U.S. National Film Registry.',
+        alt: 'A frame from Michael Jackson’s “Billie Jean” music video',
+        altSecondary: 'A frame from Michael Jackson’s “Thriller” music video',
+        imageLabels: ['“Billie Jean” music video', '“Thriller” music video'],
+        credit: '“Billie Jean” GIF: Pinterest · “Thriller” GIF: Tumblr',
       },
       boombox: {
         title: 'The boombox',

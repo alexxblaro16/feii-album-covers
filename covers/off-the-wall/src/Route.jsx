@@ -18,7 +18,7 @@ import { ALBUMS, otherAlbum } from './albums.js';
 import { SPIN_TIME, TRAVEL_EXIT } from './travel.js';
 import { createVoice } from './voice.js';
 import Scene from './Scene.jsx';
-import { THRILLER_GIF } from './CornerScreens.jsx';
+import { BILLIE_JEAN_GIF, THRILLER_GIF } from './CornerScreens.jsx';
 import Intro from './Intro.jsx';
 import Ready from './Ready.jsx';
 import { LANGS, STR, initialLang, saveLang } from './i18n.js';
@@ -88,10 +88,7 @@ import './route.css';
 
 const SCOPE = 'route-off-the-wall';
 const FONTS = 'https://fonts.googleapis.com/css2?family=Yellowtail&family=Mr+Dafoe&family=Oswald:wght@400;600&family=Architects+Daughter&family=Monoton&display=swap';
-/**
- * Fotos de las fichas (se enlazan, no se copian al repositorio): Michael con
- * Muscles, su boa, y la fachada de Studio 54 (Wikimedia Commons, CC BY-SA 3.0).
- */
+/** Medios de las fichas: externos salvo los GIF locales de la tele. */
 const CARDS = {
   muscles:
     'https://preview.redd.it/michael-with-muscles-his-pet-snake-v0-joz3ravdq66f1.jpg?width=495&format=pjpg&auto=webp&s=77d942cf450c25d9a240171a294dfa6cb55885bc',
@@ -108,7 +105,7 @@ const CARDS = {
   // Commons, con su licencia libre; se enlazan, no se copian).
   polaroid: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Polaroid_SX-70_camera.jpg/960px-Polaroid_SX-70_camera.jpg',
   arcade: 'https://upload.wikimedia.org/wikipedia/commons/8/80/Asteroids_upright_cabinet.jpg',
-  tvconsole: THRILLER_GIF,
+  tvconsole: [BILLIE_JEAN_GIF, THRILLER_GIF],
   boombox: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Sharp_GF-999_Boombox_-_Exhibit_at_Edo_Tokyo_Museum_%28edited%29.jpeg/960px-Sharp_GF-999_Boombox_-_Exhibit_at_Edo_Tokyo_Museum_%28edited%29.jpeg',
   walkman: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Original_Sony_Walkman_TPS-L2.JPG/960px-Original_Sony_Walkman_TPS-L2.JPG',
   // Un guante de Michael expuesto en el EMP de Seattle (CC BY 2.0).
@@ -923,6 +920,8 @@ export default function Route() {
   }, []);
 
   const cardText = card ? T.cards[card] ?? T.thrillerCards[card] : null;
+  const cardMedia = card ? CARDS[card] : null;
+  const cardImages = Array.isArray(cardMedia) ? cardMedia : cardMedia ? [cardMedia] : [];
   const verdict = withinCeiling(budget, CEILING);
   const showBudget = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('budget');
   // La cámara empieza al fondo del estudio; al entrar vuela a la portada.
@@ -1098,14 +1097,29 @@ export default function Route() {
           <p>{T.deckHelp}</p>
         </div>
       ) : null}
-      {/* Las imágenes de las fichas se enseñan desde su dirección original. */}
+      {/* Los medios de las fichas aparecen juntos cuando la ficha tiene más de uno. */}
       {card ? (
         <div className="otw__photo" role="dialog" aria-modal="true" aria-label={cardText.title} onClick={() => setCard(null)}>
-          <figure className={CARDS[card] ? '' : 'is-text'} onClick={(e) => e.stopPropagation()}>
+          <figure className={cardImages.length ? '' : 'is-text'} onClick={(e) => e.stopPropagation()}>
             <button type="button" aria-label={T.musclesClose} onClick={() => setCard(null)} autoFocus>
               ×
             </button>
-            {CARDS[card] ? <img src={CARDS[card]} alt={cardText.alt} referrerPolicy="no-referrer" /> : null}
+            {cardImages.length ? (
+              <div className={cardImages.length > 1 ? 'otw__photo-images otw__photo-images--pair' : 'otw__photo-images'}>
+                {cardImages.map((src, index) => (
+                  <div className="otw__photo-image" key={src}>
+                    <img
+                      src={src}
+                      alt={index === 0 ? cardText.alt : cardText.altSecondary ?? cardText.alt}
+                      referrerPolicy="no-referrer"
+                    />
+                    {cardImages.length > 1 && cardText.imageLabels?.[index] ? (
+                      <span className="otw__photo-image-label">{cardText.imageLabels[index]}</span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <figcaption>
               <strong>{cardText.title}</strong>
               {cardText.text}

@@ -3,17 +3,21 @@
 //    de neón rosa con notas musicales por el que corre un personaje
 //    inventado (un muñequito con sombrero), el título del juego
 //    y el «INSERT COIN» que se enciende y se apaga. Juego inventado.
-//  - La tele: el GIF de Thriller que se repinta en su textura para conservar
-//    la animación dentro de la pantalla 3D.
+//  - La tele: alterna dos veces los GIF de Billie Jean y Thriller y los repinta
+//    en su textura para conservar la animación dentro de la pantalla 3D.
 // Las texturas se repintan unas 24 veces por segundo. Dos llamadas de dibujo.
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CanvasTexture, MeshBasicMaterial, PlaneGeometry, SRGBColorSpace } from 'three';
+import { advanceGifAfterLoop, gifLoopDurationMs } from './gifSequence.js';
 
 const ARCADE = { position: [3.7, 1.36, 9.588], rotation: [0.12, Math.PI, 0], size: [0.5, 0.4] };
 const TV = { position: [2.6, 0.75, 9.695], rotation: [0, Math.PI, 0], size: [0.46, 0.34] };
-export const THRILLER_GIF = 'https://64.media.tumblr.com/2f3518c461440f685903845c586f362c/tumblr_p2v8rzt8tJ1ukadcbo1_400.gif';
+export const BILLIE_JEAN_GIF = new URL('../public/billie-jean.gif', import.meta.url).href;
+export const THRILLER_GIF = new URL('../public/thriller.gif', import.meta.url).href;
+const TV_GIFS = [BILLIE_JEAN_GIF, THRILLER_GIF];
+const DEFAULT_GIF_LOOP_DURATION_MS = 10000;
 
 /** Laberinto (1 = pared) de 15 x 11 casillas. */
 const MAZE = [
@@ -199,55 +203,99 @@ function drawTv(c, w, h, t, image) {
 export default function CornerScreens({ reduced }) {
   const tvImage = useRef(null);
   const tvFrame = useRef(null);
-  const gifDecoder = useRef(null);
+  const gifDecoders = useRef([]);
+  const gifIndex = useRef(0);
+  const loopsCompleted = useRef(0);
   const gifFrameIndex = useRef(0);
-  const gifFrameCount = useRef(0);
   const gifFrameDuration = useRef(0);
   const decodedAt = useRef(-1);
   const decoding = useRef(false);
+  const fallbackTimer = useRef(null);
   useEffect(() => {
     let active = true;
-    let decoder = null;
-    const showWithImage = () => {
-      const image = new Image();
-      image.crossOrigin = 'anonymous';
-      image.addEventListener('error', () => {
-        console.error(`No se pudo cargar el GIF de la tele: ${THRILLER_GIF}`);
+    const decoders = [];
+    const blobUrls = [];
+    const showWithImages = (assets = []) => {
+      const sources = TV_GIFS.map((url, index) => {
+        const asset = assets[index];
+        if (!asset?.data) return url;
+        const blobUrl = URL.createObjectURL(new Blob([asset.data], { type: 'image/gif' }));
+        blobUrls.push(blobUrl);
+        return blobUrl;
       });
-      tvImage.current = image;
-      image.src = THRILLER_GIF;
+      const display = (index) => {
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.addEventListener('error', () => {
+          console.error(`No se pudo cargar el GIF de la tele: ${TV_GIFS[index]}`);
+        });
+        image.src = sources[index];
+        tvImage.current = image;
+      };
+      gifIndex.current = 0;
+      loopsCompleted.current = 0;
+      display(0);
+      const scheduleNextLoop = () => {
+        const loopDuration = assets[gifIndex.current]?.loopDurationMs ?? DEFAULT_GIF_LOOP_DURATION_MS;
+        fallbackTimer.current = window.setTimeout(() => {
+          if (!active) return;
+          const next = advanceGifAfterLoop(gifIndex.current, loopsCompleted.current, sources.length);
+          gifIndex.current = next.gifIndex;
+          loopsCompleted.current = next.loopsCompleted;
+          if (next.loopsCompleted === 0) display(next.gifIndex);
+          scheduleNextLoop();
+        }, loopDuration);
+      };
+      scheduleNextLoop();
     };
-    const loadGif = async () => {
-      if (typeof ImageDecoder === 'undefined' || !(await ImageDecoder.isTypeSupported('image/gif'))) {
-        showWithImage();
-        return;
-      }
-      const response = await fetch(THRILLER_GIF);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const type = response.headers.get('content-type')?.split(';')[0];
-      if (type !== 'image/gif') throw new Error(`Expected image/gif, received ${type || 'unknown type'}`);
-      decoder = new ImageDecoder({ data: await response.arrayBuffer(), type });
-      await decoder.tracks.ready;
-      const frameCount = decoder.tracks.selectedTrack?.frameCount ?? 0;
-      if (frameCount < 1) throw new Error('The GIF contains no frames');
-      if (!active) {
-        decoder.close();
-        return;
-      }
-      gifDecoder.current = decoder;
-      gifFrameCount.current = frameCount;
-    };
-    loadGif().catch((error) => {
+    const loadGifs = async () => {
+      const assets = await Promise.all(
+        TV_GIFS.map(async (url) => {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+          const type = response.headers.get('content-type')?.split(';')[0];
+          if (type !== 'image/gif') throw new Error(`Expected image/gif, received ${type || 'unknown type'}`);
+          const data = await response.arrayBuffer();
+          return { url, data, loopDurationMs: gifLoopDurationMs(data) };
+        }),
+      );
       if (!active) return;
-      console.error(`No se pudieron decodificar los fotogramas del GIF: ${THRILLER_GIF}`, error);
-      decoder?.close();
-      decoder = null;
-      showWithImage();
+      if (typeof ImageDecoder === 'undefined' || !(await ImageDecoder.isTypeSupported('image/gif'))) {
+        showWithImages(assets);
+        return;
+      }
+      try {
+        for (const asset of assets) {
+          const decoder = new ImageDecoder({ data: asset.data, type: 'image/gif' });
+          decoders.push({ decoder, frameCount: 0 });
+          await decoder.tracks.ready;
+          const frameCount = decoder.tracks.selectedTrack?.frameCount ?? 0;
+          if (frameCount < 1) throw new Error(`The GIF contains no frames: ${asset.url}`);
+          decoders[decoders.length - 1].frameCount = frameCount;
+        }
+        if (!active) {
+          decoders.forEach(({ decoder }) => decoder.close());
+          return;
+        }
+        gifDecoders.current = decoders;
+      } catch (error) {
+        if (!active) return;
+        decoders.forEach(({ decoder }) => decoder.close());
+        console.error('No se pudieron decodificar los GIF de la tele; se usará la reproducción del navegador.', error);
+        showWithImages(assets);
+      }
+    };
+    loadGifs().catch((error) => {
+      if (!active) return;
+      console.error('No se pudieron cargar los GIF de la tele; se usará la reproducción del navegador.', error);
+      showWithImages();
     });
     return () => {
       active = false;
-      decoder?.close();
-      gifDecoder.current = null;
+      if (fallbackTimer.current !== null) window.clearTimeout(fallbackTimer.current);
+      decoders.forEach(({ decoder }) => decoder.close());
+      gifDecoders.current = [];
+      blobUrls.forEach((url) => URL.revokeObjectURL(url));
       tvFrame.current?.close();
       tvFrame.current = null;
       tvImage.current = null;
@@ -285,32 +333,45 @@ export default function CornerScreens({ reduced }) {
     const t = clock.elapsedTime;
     if (t - last.current < 1 / 24) return;
     last.current = t;
-    const decoder = gifDecoder.current;
-    if (decoder && !decoding.current && (decodedAt.current < 0 || t - decodedAt.current >= gifFrameDuration.current)) {
+    const gif = gifDecoders.current[gifIndex.current];
+    if (
+      gif &&
+      !decoding.current &&
+      (decodedAt.current < 0 || (!reduced && t - decodedAt.current >= gifFrameDuration.current))
+    ) {
       const index = gifFrameIndex.current;
+      const { decoder } = gif;
       decoding.current = true;
       decoder.decode({ frameIndex: index }).then(
         ({ image }) => {
-          if (gifDecoder.current !== decoder) {
+          if (gifDecoders.current[gifIndex.current] !== gif) {
             image.close();
             return;
           }
           tvFrame.current?.close();
           tvFrame.current = image;
-          gifFrameIndex.current = (index + 1) % gifFrameCount.current;
+          if (index + 1 >= gif.frameCount) {
+            gifFrameIndex.current = 0;
+            const next = advanceGifAfterLoop(gifIndex.current, loopsCompleted.current, gifDecoders.current.length);
+            if (next.gifIndex !== gifIndex.current) decodedAt.current = -1;
+            gifIndex.current = next.gifIndex;
+            loopsCompleted.current = next.loopsCompleted;
+          } else {
+            gifFrameIndex.current = index + 1;
+          }
           gifFrameDuration.current = Math.max((image.duration || 60000) / 1_000_000, 1 / 60);
           decodedAt.current = t;
         },
         (error) => {
-          if (gifDecoder.current === decoder) {
-            console.error(`No se pudo decodificar un fotograma del GIF: ${THRILLER_GIF}`, error);
+          if (gifDecoders.current[gifIndex.current] === gif) {
+            console.error(`No se pudo decodificar un fotograma del GIF: ${TV_GIFS[gifIndex.current]}`, error);
           }
         },
       ).finally(() => {
         decoding.current = false;
       });
     }
-    paintScreens(res, reduced ? 1 : t, tvFrame.current || tvImage.current);
+    paintScreens(res, reduced ? 1 : t, reduced ? tvFrame.current : tvFrame.current || tvImage.current);
   });
   return (
     <group>
