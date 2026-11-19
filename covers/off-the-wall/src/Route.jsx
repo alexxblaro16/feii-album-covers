@@ -105,7 +105,7 @@ const CARDS = {
   // Commons, con su licencia libre; se enlazan, no se copian).
   polaroid: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Polaroid_SX-70_camera.jpg/960px-Polaroid_SX-70_camera.jpg',
   arcade: 'https://upload.wikimedia.org/wikipedia/commons/8/80/Asteroids_upright_cabinet.jpg',
-  tvconsole: [BILLIE_JEAN_GIF, THRILLER_GIF],
+  tvconsole: [THRILLER_GIF, BILLIE_JEAN_GIF],
   boombox: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Sharp_GF-999_Boombox_-_Exhibit_at_Edo_Tokyo_Museum_%28edited%29.jpeg/960px-Sharp_GF-999_Boombox_-_Exhibit_at_Edo_Tokyo_Museum_%28edited%29.jpeg',
   walkman: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Original_Sony_Walkman_TPS-L2.JPG/960px-Original_Sony_Walkman_TPS-L2.JPG',
   // Un guante de Michael expuesto en el EMP de Seattle (CC BY 2.0).
