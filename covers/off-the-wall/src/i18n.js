@@ -212,8 +212,8 @@ export const STR = {
       tvconsole: {
         title: 'La tele y la videoconsola',
         text: 'Está aquí porque a principios de los ochenta las videoconsolas de cartuchos ya estaban en millones de casas, enchufadas a teles de tubo con antena de cuernos. MTV empezó a emitir el 1 de agosto de 1981 y, el 2 de diciembre de 1983, estrenó el videoclip de «Thriller», la canción que da título al álbum considerado el más vendido de la historia.',
-        alt: 'Una videoconsola Atari 2600 con sus mandos y un cartucho',
-        credit: 'Foto: una Atari 2600 (1977) · Evan Amos, dominio público, Wikimedia Commons',
+        alt: 'Un fotograma del videoclip «Thriller» de Michael Jackson',
+        credit: 'GIF del videoclip «Thriller» · fuente original: Tumblr',
       },
       boombox: {
         title: 'El radiocasete',
@@ -446,8 +446,8 @@ export const STR = {
       tvconsole: {
         title: 'The TV and the console',
         text: 'It is here because by the early eighties cartridge consoles were already in millions of homes, plugged into tube TVs with rabbit-ear antennas. MTV began broadcasting on August 1, 1981, and premiered the “Thriller” music video on December 2, 1983—the song that gives its title to the album widely regarded as the best-selling of all time.',
-        alt: 'An Atari 2600 console with its controllers and a cartridge',
-        credit: 'Photo: an Atari 2600 (1977) · Evan Amos, public domain, Wikimedia Commons',
+        alt: 'A frame from Michael Jackson’s “Thriller” music video',
+        credit: '“Thriller” music video GIF · original source: Tumblr',
       },
       boombox: {
         title: 'The boombox',

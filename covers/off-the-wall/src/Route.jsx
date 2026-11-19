@@ -18,6 +18,7 @@ import { ALBUMS, otherAlbum } from './albums.js';
 import { SPIN_TIME, TRAVEL_EXIT } from './travel.js';
 import { createVoice } from './voice.js';
 import Scene from './Scene.jsx';
+import { THRILLER_GIF } from './CornerScreens.jsx';
 import Intro from './Intro.jsx';
 import Ready from './Ready.jsx';
 import { LANGS, STR, initialLang, saveLang } from './i18n.js';
@@ -107,7 +108,7 @@ const CARDS = {
   // Commons, con su licencia libre; se enlazan, no se copian).
   polaroid: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Polaroid_SX-70_camera.jpg/960px-Polaroid_SX-70_camera.jpg',
   arcade: 'https://upload.wikimedia.org/wikipedia/commons/8/80/Asteroids_upright_cabinet.jpg',
-  tvconsole: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Atari-2600-Wood-4Sw-Set.jpg/960px-Atari-2600-Wood-4Sw-Set.jpg',
+  tvconsole: THRILLER_GIF,
   boombox: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Sharp_GF-999_Boombox_-_Exhibit_at_Edo_Tokyo_Museum_%28edited%29.jpeg/960px-Sharp_GF-999_Boombox_-_Exhibit_at_Edo_Tokyo_Museum_%28edited%29.jpeg',
   walkman: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Original_Sony_Walkman_TPS-L2.JPG/960px-Original_Sony_Walkman_TPS-L2.JPG',
   // Un guante de Michael expuesto en el EMP de Seattle (CC BY 2.0).
@@ -1097,8 +1098,7 @@ export default function Route() {
           <p>{T.deckHelp}</p>
         </div>
       ) : null}
-      {/* Ficha con foto (Muscles o Studio 54). Las fotos no se guardan en el
-          repositorio: se enseñan desde su dirección original. */}
+      {/* Las imágenes de las fichas se enseñan desde su dirección original. */}
       {card ? (
         <div className="otw__photo" role="dialog" aria-modal="true" aria-label={cardText.title} onClick={() => setCard(null)}>
           <figure className={CARDS[card] ? '' : 'is-text'} onClick={(e) => e.stopPropagation()}>
