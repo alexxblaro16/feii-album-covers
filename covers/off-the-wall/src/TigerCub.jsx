@@ -229,7 +229,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
       // La raíz de la cola marca el reposo (hacia atrás y algo arriba, con un
       // vaivén lento); la física hace el resto: cae, se balancea y apoya en el suelo.
       tail.current.rotation.x = Math.sin(t * (0.6 + 0.3 * s.walk)) * (0.08 + 0.06 * s.walk);
-      tail.current.rotation.z = -1.95 + 0.2 * s.lie + 0.3 * s.sit;
+      tail.current.rotation.z = -1.45 + 0.1 * s.lie + 0.15 * s.sit;
       tail.current.updateWorldMatrix(true, false);
       const parent = root.current.parent;
       tail.current.getWorldPosition(work.root);
@@ -237,7 +237,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
       tail.current.getWorldQuaternion(work.q);
       parent.getWorldQuaternion(work.pq);
       work.dir.set(0, -1, 0).applyQuaternion(work.q).applyQuaternion(work.pq.invert()).normalize();
-      stepTail(res.tail, work.root, work.dir, 0.28 * s.walk + 0.15 * s.sit + 0.12 * s.lie, dt);
+      stepTail(res.tail, work.root, work.dir, 0.15 * s.walk + 0.08 * s.sit + 0.06 * s.lie, dt);
     }
   });
 
@@ -274,7 +274,7 @@ export default function TigerCub({ center, radius, reduced, onHover, onInspect, 
           <mesh geometry={res.geo.eyes} material={res.eye} />
         </group>
         {/* Raíz de la cola: solo marca dónde nace; el tubo va fuera, en el espacio del suelo. */}
-        <group ref={tail} position={[-0.17, 0.02, 0]} rotation={[0, 0, -1.95]} />
+        <group ref={tail} position={[-0.17, 0.02, 0]} rotation={[0, 0, -1.45]} />
       </group>
     </group>
     <mesh geometry={res.tail.geometry} material={res.fur} castShadow frustumCulled={false} />
